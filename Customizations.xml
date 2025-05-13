@@ -1,0 +1,107 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ImportExportXml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.25044.174" OrganizationSchemaType="Standard" CRMServerServiceabilityVersion="9.2.25044.00174">
+  <Entities />
+  <Roles />
+  <Workflows />
+  <FieldSecurityProfiles />
+  <Templates />
+  <EntityMaps />
+  <EntityRelationships />
+  <OrganizationSettings />
+  <optionsets />
+  <CustomControls />
+  <EntityDataProviders />
+  <CanvasApps />
+  <AIModels>
+    <AIModel>
+      <msdyn_aimodelid>{ac1a242a-bfcd-4857-b8e3-e1609c451af3}</msdyn_aimodelid>
+      <msdyn_name>Document Processing (Resumes)</msdyn_name>
+      <msdyn_templateid>{10707e4e-1d56-e911-8194-000d3a6cd5a5}</msdyn_templateid>
+      <statecode>1</statecode>
+      <statuscode>1</statuscode>
+      <IsCustomizable>1</IsCustomizable>
+      <msdyn_activerunconfigurationid>{24f209b2-4f2a-f011-8c4d-000d3a0a89c7}</msdyn_activerunconfigurationid>
+      <AIConfigurations>
+        <AIConfiguration>
+          <msdyn_aiconfigurationid>{24f209b2-4f2a-f011-8c4d-000d3a0a89c7}</msdyn_aiconfigurationid>
+          <msdyn_customconfiguration>{"version":"DocumentScanning-2","labels":{"Name":{"defaultId":"7277535a-b1f8-4ce1-99a1-f9f7b024c005","fieldType":"string","layoutSpecificIds":{}},"EmailID":{"defaultId":"56e7d92a-0996-4f4b-b6f6-dd8a5768e1bc","fieldType":"string","layoutSpecificIds":{}},"Phone Number":{"defaultId":"408a1ff1-3d8b-4500-b32c-14e79eee9fed","fieldType":"string","layoutSpecificIds":{}}},"tables":{},"layouts":{"Collection 1":{"layoutId":"2e6588c2-6a13-4890-9f84-7e264e82b4dc"}}}</msdyn_customconfiguration>
+          <msdyn_majoriterationnumber>13</msdyn_majoriterationnumber>
+          <msdyn_minoriterationnumber>0</msdyn_minoriterationnumber>
+          <msdyn_name>ac1a242a-bfcd-4857-b8e3-e1609c451af3_2025-05-06T07:57:12.841Z</msdyn_name>
+          <msdyn_modelrundataspecification>H4sIAAAAAAAACu1WS2vbQBD+K8ueWlATQtoedGttBwwlDnHpfSWN1A37Yne2RJj8987qETWRndrgY3SQxDy++Xa+8cg7vnVQ3livBf4CH6Q1PL/K+Nq4iPfW4sqgxJbnO76UwSnR3goNPOc8498QvSwiQkjuQgT4+nllSltBNY9f2jJqMEh5P1uXLGstGuBPGddSQ287lMQwubPRu4RQeumwI8tlwrl8cNBks1dnmkw4p2QpUvSlq+rBg7IeXwvtJlZbOpNpEi1HvjDndNeZD3ChboFnKZN5Yej+YfWYsytmPbv+9OXjBdsY1TIPGL0J9AxRYWC2ZoIFKquA1STFBcFvOkiheI4+wjO9712XR5JPRHMT8VSplChA7Tna1IVN8QBl0upozN6+Oxqge7wG+SNU/BdlEgPhEfc6SmtqWYEp94zP5GOhtD7VG/LvgTpL2bUEVe2fvUqgGOduVrUj+sP2U3XKsWdHTrNyG3UBfh7cVemnyfQh04+HBq0hA41AuqigFlKtl6dwGVPeVTibCne/rQE2IR0rxYu8dz3OpEcnCYpCwXmXXYdLbhtxXHsvExZWKYKk3cBMv+dmG6RPXzxvqG23oN5C+v82GzCj9xTVbltdWPp+vAU5hLLQxx7mOQQu6ON+HGL6GzDHo879BU065FVyCAAA</msdyn_modelrundataspecification>
+          <msdyn_type>190690001</msdyn_type>
+          <msdyn_aimodelid>{ac1a242a-bfcd-4857-b8e3-e1609c451af3}</msdyn_aimodelid>
+          <msdyn_trainedmodelaiconfigurationpareid>{fab1289f-97d7-49e2-873b-225fc47ebb07}</msdyn_trainedmodelaiconfigurationpareid>
+          <statecode>2</statecode>
+          <statuscode>7</statuscode>
+          <IsCustomizable>1</IsCustomizable>
+          <msdyn_templateversion>1</msdyn_templateversion>
+        </AIConfiguration>
+        <AIConfiguration>
+          <msdyn_aiconfigurationid>{fab1289f-97d7-49e2-873b-225fc47ebb07}</msdyn_aiconfigurationid>
+          <msdyn_customconfiguration>{"version":"DocumentScanning-1","shouldReturnTableFromUnsupervisedModel":false,"defaultLayoutId":"2e6588c2-6a13-4890-9f84-7e264e82b4dc","requiredFeatures":["CustomDocument","isV4"],"displayNameMapping":{"7277535a-b1f8-4ce1-99a1-f9f7b024c005":"Name","56e7d92a-0996-4f4b-b6f6-dd8a5768e1bc":"EmailID","408a1ff1-3d8b-4500-b32c-14e79eee9fed":"Phone Number"},"presenceTokens":[]}</msdyn_customconfiguration>
+          <msdyn_databinding>{"schemaVersion":2,"input":{"schemaName":"msdyn_aibdatasetfile","queries":{"train":{"type":"fetchXml","query":"&lt;fetch mapping=\"logical\"&gt;\n    &lt;entity name=\"msdyn_aibdatasetfile\"&gt;\n      &lt;filter type=\"and\"&gt;\n  &lt;condition attribute=\"msdyn_aibdatasetid\" operator=\"eq\" value=\"3a5150f8-63e8-466c-a98e-ef73063eb433\"/&gt;\n&lt;/filter&gt;\n    &lt;/entity&gt;\n  &lt;/fetch&gt;"}},"relatedEntities":[{"schemaName":"msdyn_AIBDatasetFile_msdyn_AIBuilde","cardinality":"ManyToOne","attributes":[{"specificationName":"binaryName","schemaName":"msdyn_file","dataType":"Undefined","requiredLevel":"ApplicationRequired"}]},{"schemaName":"msdyn_AIBFileAttachedData_msdyn_AIB","specificationName":"labels","cardinality":"OneToMany","queries":{"train":{"type":"fetchXml","query":"&lt;fetch mapping=\"logical\"&gt;\n    &lt;entity name=\"msdyn_aibfileattacheddata\"&gt;\n      &lt;filter type=\"and\"&gt;\n  &lt;condition attribute=\"msdyn_type\" operator=\"eq\" value=\"tag\"/&gt;\n&lt;/filter&gt;\n    &lt;/entity&gt;\n  &lt;/fetch&gt;"}},"embeddedObjects":[{"schemaName":"msdyn_data","isCollection":false,"embeddedObjects":[{"schemaName":"trainingLabel","specificationName":"labels","isCollection":false}]}]}]}}</msdyn_databinding>
+          <msdyn_majoriterationnumber>13</msdyn_majoriterationnumber>
+          <msdyn_minoriterationnumber>0</msdyn_minoriterationnumber>
+          <msdyn_modeldata>0dfbd033-fec3-4496-8c10-ba126f1136a8</msdyn_modeldata>
+          <msdyn_modelperformance>{"metrics":[],"details":[]}</msdyn_modelperformance>
+          <msdyn_name>ac1a242a-bfcd-4857-b8e3-e1609c451af3_2025-05-06T07:55:50.591Z</msdyn_name>
+          <msdyn_modelrundataspecification>{
+  "SpecFormatVersion": 1,
+  "InputRootEntity": {
+    "DisplayName": "Document",
+    "Attributes": {
+      "binaryName": { "Type": "Image" }
+    }
+  }
+}</msdyn_modelrundataspecification>
+          <msdyn_type>190690000</msdyn_type>
+          <msdyn_aimodelid>{ac1a242a-bfcd-4857-b8e3-e1609c451af3}</msdyn_aimodelid>
+          <msdyn_lasttrainorrundate>2025-05-06T08:11:37</msdyn_lasttrainorrundate>
+          <statecode>2</statecode>
+          <statuscode>6</statuscode>
+          <IsCustomizable>1</IsCustomizable>
+          <msdyn_templateversion>1</msdyn_templateversion>
+          <msdyn_modelprovisioningmetadata>AQAAAJkAAADvu797Ikdlb2dyYXBoeSI6ImluIiwiQ2x1c3RlcklkIjoic2luIiwiS2V5VmVyc2lvbiI6IjJmYTFiYjA3NzdlNjQyYTVhNmJhMzRiZDZmNWIzMTdkIiwiU2lnbmF0dXJlVmVyc2lvbiI6InYxIiwiU2lnbmF0dXJlRGF0ZUJpbmFyeSI6NTI1MDUwNzE3NzM4OTg3ODQ2Nn0gAAAAuygAaw/MvQg3x/Jhs/T+OU0vqyyaGs89fSMHm7Lzvjg1AgAAeyJ2ZXJzaW9uIjoiRG9jdW1lbnRTY2FubmluZ0NvcHlEYXRhLTEiLCJtb2RlbERhdGEiOnsiaW50ZXJuYWxTdXBlcnZpc2VkTW9kZWxJZCI6IjE4N2JmMGI4LTJjZjEtNDQzYS1iZGIxLWUzYzg4YThiMjgxYyIsImNvZ25pdGl2ZVN1cGVydmlzZWRSZXNvdXJjZUlkIjoiRm9ybVVuZGVyc3RhbmRpbmdBcHBsaWNhdGlvbktleS00IiwiYmFja2VuZFZlcnNpb24iOiJ2NCIsImtleUFsbG9jYXRvclZlcnNpb24iOiJ2Mi4wIiwibW9kZWxMYXlvdXRzQ29uZmlnIjp7InN1Ym1vZGVscyI6W10sImRlZmF1bHRMYXlvdXRJZCI6IjJlNjU4OGMyLTZhMTMtNDg5MC05Zjg0LTdlMjY0ZTgyYjRkYyJ9LCJGZWF0dXJlcyI6eyJjdXN0b21pemVkUHJlYnVpbHQiOnsicHJlYnVpbHRFeGNsdWRlZEZpZWxkcyI6e319LCJpc0N1c3RvbURvY01vZGVsIjp0cnVlfSwic291cmNlSXNsYW5kSWQiOiIxMDEiLCJnZW8iOiJpbiIsImVudmlyb25tZW50SWQiOiJlNDAzNmRhNC02ZmU4LTRlMDEtODVjZi04NTQwMTE4ZWI4MjMiLCJjYXBpTW9kZWxJZCI6IjBkZmJkMDMzLWZlYzMtNDQ5Ni04YzEwLWJhMTI2ZjExMzZhOCJ9fQ==</msdyn_modelprovisioningmetadata>
+        </AIConfiguration>
+      </AIConfigurations>
+    </AIModel>
+  </AIModels>
+  <connectionreferences>
+    <connectionreference connectionreferencelogicalname="ab_sharedcommondataserviceforapps_d5641">
+      <connectionreferencedisplayname>Microsoft Dataverse ABSolution-d5641</connectionreferencedisplayname>
+      <connectorid>/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps</connectorid>
+      <iscustomizable>1</iscustomizable>
+      <promptingbehavior>0</promptingbehavior>
+      <statecode>0</statecode>
+      <statuscode>1</statuscode>
+    </connectionreference>
+    <connectionreference connectionreferencelogicalname="ab_sharedoffice365_38400">
+      <connectionreferencedisplayname>Office 365 Outlook ABSolution-38400</connectionreferencedisplayname>
+      <connectorid>/providers/Microsoft.PowerApps/apis/shared_office365</connectorid>
+      <iscustomizable>1</iscustomizable>
+      <promptingbehavior>0</promptingbehavior>
+      <statecode>0</statecode>
+      <statuscode>1</statuscode>
+    </connectionreference>
+    <connectionreference connectionreferencelogicalname="ab_sharedonedriveforbusiness_f9e9c">
+      <connectionreferencedisplayname>OneDrive for Business ABSolution-f9e9c</connectionreferencedisplayname>
+      <connectorid>/providers/Microsoft.PowerApps/apis/shared_onedriveforbusiness</connectorid>
+      <iscustomizable>1</iscustomizable>
+      <promptingbehavior>0</promptingbehavior>
+      <statecode>0</statecode>
+      <statuscode>1</statuscode>
+    </connectionreference>
+    <connectionreference connectionreferencelogicalname="ab_sharedsharepointonline_59731">
+      <connectionreferencedisplayname>SharePoint ABSolution-59731</connectionreferencedisplayname>
+      <connectorid>/providers/Microsoft.PowerApps/apis/shared_sharepointonline</connectorid>
+      <iscustomizable>1</iscustomizable>
+      <promptingbehavior>0</promptingbehavior>
+      <statecode>0</statecode>
+      <statuscode>1</statuscode>
+    </connectionreference>
+  </connectionreferences>
+  <Languages>
+    <Language>1033</Language>
+  </Languages>
+</ImportExportXml>

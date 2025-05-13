@@ -1,0 +1,1263 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_office365_2": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "ab_sharedoffice365_38400"
+        },
+        "api": {
+          "name": "shared_office365"
+        }
+      },
+      "shared_sharepointonline": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "ab_sharedsharepointonline_59731"
+        },
+        "api": {
+          "name": "shared_sharepointonline"
+        }
+      },
+      "shared_onedriveforbusiness": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "ab_sharedonedriveforbusiness_f9e9c"
+        },
+        "api": {
+          "name": "shared_onedriveforbusiness"
+        }
+      },
+      "shared_commondataserviceforapps": {
+        "impersonation": {},
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "ab_sharedcommondataserviceforapps_d5641"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "When_a_new_email_arrives_(V3)": {
+          "splitOn": "@triggerOutputs()?['body/value']",
+          "metadata": {
+            "operationMetadataId": "20b82ce2-3b92-4caa-8ca7-8799533242a0"
+          },
+          "type": "OpenApiConnectionNotification",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
+              "connectionName": "shared_office365_2",
+              "operationId": "OnNewEmailV3"
+            },
+            "parameters": {
+              "folderPath": "Inbox",
+              "includeAttachments": true,
+              "importance": "Any",
+              "fetchOnlyWithAttachment": true
+            },
+            "authentication": "@parameters('$authentication')"
+          },
+          "runtimeConfiguration": {
+            "concurrency": {
+              "runs": 1
+            }
+          }
+        }
+      },
+      "actions": {
+        "Initialize_NewResumes": {
+          "runAfter": {},
+          "metadata": {
+            "operationMetadataId": "9fe1121a-51e3-4ba1-a164-be19e95c5ced"
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "NewResumes",
+                "type": "array"
+              }
+            ]
+          }
+        },
+        "Initialize_DuplicateResumes": {
+          "runAfter": {
+            "Initialize_NewResumes": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "f05b2ba9-ff42-4d35-8906-28024f659f2b"
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "DuplicateResumes",
+                "type": "array"
+              }
+            ]
+          }
+        },
+        "Reply_to_email_(V3)": {
+          "runAfter": {
+            "For_each": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "a8a62661-f69b-4d26-a95a-ee37e871f7e4"
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
+              "connectionName": "shared_office365_2",
+              "operationId": "ReplyToV3"
+            },
+            "parameters": {
+              "messageId": "@triggerOutputs()?['body/id']",
+              "replyParameters/Body": "<html>\n<body style=\"font-family: Arial, sans-serif; color: #333; line-height: 1.6;\">\n\n    <div style=\"text-align: center; padding-bottom: 20px;\">\n         <img src=\"https://i.ibb.co/H6DhZWH/prodigy-logo.png\" alt=\"prodigy-logo\" border=\"0\">\n        <h2 style=\"color: #0073e6; margin-top: 10px;\">Prodigy HR Team</h2>\n    </div>\n\n    <p>We have processed the resumes submitted for review. Below is the status update for each submission:</p>\n\n    <table border=\"1\" cellpadding=\"10\" cellspacing=\"0\" style=\"border-collapse: collapse; width: 100%; font-size: 14px;\">\n        <tr style=\"background-color: #0073e6; color: white;\">\n            <th style=\"text-align: left; padding: 10px;\">Status</th>\n            <th style=\"text-align: left; padding: 10px;\">Candidate Names</th>\n        </tr>\n        <tr>\n            <td style=\"font-weight: bold; background-color: #f9f9f9;\">Resumes Under Review</td>\n            <td>@{if(greater(length(variables('NewResumes')), 0), join(variables('NewResumes'), ', '), '<i>No new resumes found</i>')}</td>\n        </tr>\n        <tr>\n            <td style=\"font-weight: bold; background-color: #f9f9f9;\">Duplicate Resumes Identified</td>\n            <td>@{if(greater(length(variables('DuplicateResumes')), 0), join(variables('DuplicateResumes'), ', '), '<i>No duplicate resumes found</i>')}</td>\n        </tr>\n    </table>\n\n    <p><b>Next Steps:</b></p>\n    <ul>\n        <li>Resumes under review will be processed further, and shortlisted candidates will be contacted.</li>\n        <li>The Duplicate resumes are already in our records and will not be reconsidered at this time.</li>\n    </ul>\n\n    <p>Best Regards,</p>\n    <p><b>Prodigy HR Team</b><br>\n    <i>Talent Acquisition | Prodigy Systems and Services Pvt. Ltd.</i></p>\n\n    <hr style=\"border: 0; height: 1px; background-color: #ccc; margin-top: 20px;\"/>\n    <p style=\"text-align: center; font-size: 12px; color: gray;\">\n        Disclaimer: This is an auto generated email from our Recruitment Solution using Artificial Intelligence. Duplicate checker is not 100% accurate and may have misses which will be communicated later with delay. If you have any queries please reach out to hr@prodigygroupindia.com.\n\n\n    </p>\n\n</body>\n</html>\n",
+              "replyParameters/Cc": "akshithb@prodigygroupindia.com;manjeera.kommaraju@prodigygroupindia.com;ramadevis@prodigygroupindia.com",
+              "replyParameters/Importance": "Normal"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Initialize_variable_FileName": {
+          "runAfter": {
+            "Initialize_DuplicateResumes": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "d8180489-5d35-4a0c-8943-f186e3266ee7"
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "FileName",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "Initialize_variable_FileNameParts": {
+          "runAfter": {
+            "Initialize_variable_FileName": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "5ce92912-8217-45ae-8a3e-a38dc10258fc"
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "FileNameParts",
+                "type": "array"
+              }
+            ]
+          }
+        },
+        "Initialize_variable_NamePredict": {
+          "runAfter": {
+            "Initialize_variable_FileNameParts": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "8f256235-bfc9-4c73-b681-0614f9134da4"
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "NamePredict",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "Initialize_variable_PhoneNumberPredict": {
+          "runAfter": {
+            "Initialize_variable_NamePredict": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "cae00325-7e66-41bc-85df-da71ef3ff152"
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "PhoneNumberPredict",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "Initialize_variable_MailPredict": {
+          "runAfter": {
+            "Initialize_variable_PhoneNumberPredict": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "e34315c2-0522-4112-9e5b-8a5b3a06f664"
+          },
+          "type": "InitializeVariable",
+          "inputs": {
+            "variables": [
+              {
+                "name": "MailPredict",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "Get_items_3": {
+          "runAfter": {
+            "Initialize_variable_MailPredict": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "358316a2-93e6-42e9-b443-2e0212c49782"
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "GetItems"
+            },
+            "parameters": {
+              "dataset": "https://prodigygroupindia.sharepoint.com",
+              "table": "fae424a7-c41c-495a-ab66-e1c5cbbd7728"
+            },
+            "authentication": "@parameters('$authentication')"
+          },
+          "runtimeConfiguration": {
+            "paginationPolicy": {
+              "minimumItemCount": 3000
+            }
+          }
+        },
+        "For_each": {
+          "foreach": "@triggerOutputs()?['body/attachments']",
+          "actions": {
+            "Get_Attachment_(V2)": {
+              "runAfter": {},
+              "metadata": {
+                "operationMetadataId": "d44f3471-25b8-426e-a203-71a9655efb1b"
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365",
+                  "connectionName": "shared_office365_2",
+                  "operationId": "GetAttachment_V2"
+                },
+                "parameters": {
+                  "messageId": "@triggerOutputs()?['body/id']",
+                  "attachmentId": "@item()?['id']"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            },
+            "Set_variable_3": {
+              "runAfter": {
+                "Get_Attachment_(V2)": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "76661d78-0a3f-4b9f-b2c9-1ef372f15d8a"
+              },
+              "type": "SetVariable",
+              "inputs": {
+                "name": "FileName",
+                "value": "@outputs('Get_Attachment_(V2)')?['body/name']"
+              }
+            },
+            "Compose": {
+              "runAfter": {
+                "Set_variable_3": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "dde8891d-889b-4a50-a7e6-58f9f76c2375"
+              },
+              "type": "Compose",
+              "inputs": "@{replace(replace(replace(outputs('Get_Attachment_(V2)')?['body/name'], '.pdf', ''), '.doc', ''), '.docx', '')\r\n}\n"
+            },
+            "Set_variable": {
+              "runAfter": {
+                "Compose": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "f88eefa1-d0ab-4a77-9da6-6bf58989fb10"
+              },
+              "type": "SetVariable",
+              "inputs": {
+                "name": "FileName",
+                "value": "@{outputs('Compose')}"
+              }
+            },
+            "Set_variable_5": {
+              "runAfter": {
+                "Set_variable": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "f3ed4e09-9f59-4cab-981a-0f835b8a8f0e"
+              },
+              "type": "SetVariable",
+              "inputs": {
+                "name": "FileNameParts",
+                "value": "@split(variables('FileName'), '_')\r\n"
+              }
+            },
+            "Create_file_4": {
+              "runAfter": {
+                "Set_variable_5": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "1bbc1515-ecc3-4db3-a193-f4cc92f0669e"
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "connectionName": "shared_sharepointonline",
+                  "operationId": "CreateFile"
+                },
+                "parameters": {
+                  "dataset": "https://prodigygroupindia.sharepoint.com",
+                  "folderPath": "/Shared Documents/ResumePDFs",
+                  "name": "@outputs('Get_Attachment_(V2)')?['body/name']",
+                  "body": "@outputs('Get_Attachment_(V2)')?['body/contentBytes']"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runtimeConfiguration": {
+                "contentTransfer": {
+                  "transferMode": "Chunked"
+                }
+              }
+            },
+            "Get_file_content": {
+              "runAfter": {
+                "Create_file_4": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "3897fbb0-714a-467e-b0d4-19b35bc7b9a9"
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "connectionName": "shared_sharepointonline",
+                  "operationId": "GetFileContent"
+                },
+                "parameters": {
+                  "dataset": "https://prodigygroupindia.sharepoint.com",
+                  "id": "@outputs('Create_file_4')?['body/Id']",
+                  "inferContentType": true
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            },
+            "Create_file_5": {
+              "runAfter": {
+                "Get_file_content": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "ead1b176-f658-4cc1-ba2c-17c23ec6c9d8"
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_onedriveforbusiness",
+                  "connectionName": "shared_onedriveforbusiness",
+                  "operationId": "CreateFile"
+                },
+                "parameters": {
+                  "folderPath": "/",
+                  "name": "@outputs('Create_file_4')?['body/Name']",
+                  "body": "@body('Get_file_content')"
+                },
+                "authentication": "@parameters('$authentication')"
+              },
+              "runtimeConfiguration": {
+                "contentTransfer": {
+                  "transferMode": "Chunked"
+                }
+              }
+            },
+            "Get_file_content_4": {
+              "runAfter": {
+                "Create_file_5": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "8605d211-e60f-41a6-8a69-6939b60f8522"
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_onedriveforbusiness",
+                  "connectionName": "shared_onedriveforbusiness",
+                  "operationId": "GetFileContent"
+                },
+                "parameters": {
+                  "id": "@outputs('Create_file_5')?['body/Id']",
+                  "inferContentType": true
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            },
+            "Condition": {
+              "actions": {
+                "Convert_file": {
+                  "runAfter": {},
+                  "metadata": {
+                    "operationMetadataId": "18db53b4-177e-4ba8-8f8f-d6c8419582bb"
+                  },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_onedriveforbusiness",
+                      "connectionName": "shared_onedriveforbusiness",
+                      "operationId": "ConvertFile"
+                    },
+                    "parameters": {
+                      "id": "@outputs('Create_file_5')?['body/Id']",
+                      "type": "PDF"
+                    },
+                    "retryPolicy": {
+                      "type": "fixed",
+                      "count": 10,
+                      "interval": "PT5S"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Create_file_3": {
+                  "runAfter": {
+                    "Delete_file_3": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "e30e6e8a-7c32-491e-b294-ead5968ce083"
+                  },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "connectionName": "shared_sharepointonline",
+                      "operationId": "CreateFile"
+                    },
+                    "parameters": {
+                      "dataset": "https://prodigygroupindia.sharepoint.com",
+                      "folderPath": "/Shared Documents/ResumePDFs",
+                      "name": "@outputs('Convert_file')?['headers/x-ms-file-name']",
+                      "body": "@body('Convert_file')"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  },
+                  "runtimeConfiguration": {
+                    "contentTransfer": {
+                      "transferMode": "Chunked"
+                    }
+                  }
+                },
+                "Get_file_content_5": {
+                  "runAfter": {
+                    "Create_file_3": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "dc8d428e-c077-4646-93bd-9feaa704db10"
+                  },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "connectionName": "shared_sharepointonline",
+                      "operationId": "GetFileContent"
+                    },
+                    "parameters": {
+                      "dataset": "https://prodigygroupindia.sharepoint.com",
+                      "id": "@outputs('Create_file_3')?['body/Id']",
+                      "inferContentType": true
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Delete_file_2": {
+                  "runAfter": {
+                    "Get_file_properties_2": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "1dd6a150-c1dd-4d13-a5f7-52421be4a30c"
+                  },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_onedriveforbusiness",
+                      "connectionName": "shared_onedriveforbusiness",
+                      "operationId": "DeleteFile"
+                    },
+                    "parameters": {
+                      "id": "@outputs('Create_file_5')?['body/Id']"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Predict_2": {
+                  "runAfter": {
+                    "Delete_file_2": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "0d7e73da-526f-4bcc-818e-c693980855d8",
+                    "flowSystemMetadata": {
+                      "portalOperationId": "aibuilderpredict",
+                      "portalOperationGroup": "aibuilder",
+                      "portalOperationApiDisplayNameOverride": "AI Builder",
+                      "portalOperationIconOverride": "https://content.powerapps.com/resource/makerx/static/pauto/images/designeroperations/aiBuilderNew.51dbdb6b.png",
+                      "portalOperationBrandColorOverride": "#0A76C4",
+                      "portalOperationApiTierOverride": "Standard"
+                    }
+                  },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "aibuilderpredict"
+                    },
+                    "parameters": {
+                      "recordId": "ac1a242a-bfcd-4857-b8e3-e1609c451af3",
+                      "item/requestv2/mimeType": "@outputs('Create_file_3')?['body/Path']",
+                      "item/requestv2/base64Encoded": "@body('Get_file_content_5')"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Get_files_(properties_only)": {
+                  "runAfter": {
+                    "Convert_file": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "e961aba8-86c4-4c2c-b34d-206954694e95"
+                  },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "connectionName": "shared_sharepointonline",
+                      "operationId": "GetFileItems"
+                    },
+                    "parameters": {
+                      "dataset": "https://prodigygroupindia.sharepoint.com",
+                      "table": "4acfe8a9-fbf7-4d38-b4c7-bb1efb7a257a",
+                      "folderPath": "/Shared Documents/ResumePDFs",
+                      "$filter": "FileLeafRef eq '@{outputs('Convert_file')?['headers/x-ms-file-name']}'"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Check_for_exisiting_PDF_file_and_delete_it": {
+                  "foreach": "@outputs('Get_files_(properties_only)')?['body/value']",
+                  "actions": {
+                    "Condition_2": {
+                      "actions": {
+                        "Delete_existing_PDF": {
+                          "runAfter": {},
+                          "metadata": {
+                            "operationMetadataId": "2c0209c4-34b5-412e-835e-04a58cf9c392"
+                          },
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                              "connectionName": "shared_sharepointonline",
+                              "operationId": "DeleteFile"
+                            },
+                            "parameters": {
+                              "dataset": "https://prodigygroupindia.sharepoint.com",
+                              "id": "@items('Check_for_exisiting_PDF_file_and_delete_it')?['{Identifier}']"
+                            },
+                            "authentication": "@parameters('$authentication')"
+                          }
+                        }
+                      },
+                      "runAfter": {},
+                      "expression": {
+                        "greater": [
+                          "@outputs('Convert_file')?['headers/x-ms-file-name']",
+                          ""
+                        ]
+                      },
+                      "metadata": {
+                        "operationMetadataId": "061d3c02-bc13-49f0-9b28-2839a10ffc79"
+                      },
+                      "type": "If"
+                    }
+                  },
+                  "runAfter": {
+                    "Get_files_(properties_only)": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "7df603cf-4f2d-4952-9caf-40d2ac3955e8"
+                  },
+                  "type": "Foreach"
+                },
+                "Delete_file_3": {
+                  "runAfter": {
+                    "Check_for_exisiting_PDF_file_and_delete_it": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "2c941215-af27-48ba-ae3f-00044142e848"
+                  },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "connectionName": "shared_sharepointonline",
+                      "operationId": "DeleteFile"
+                    },
+                    "parameters": {
+                      "dataset": "https://prodigygroupindia.sharepoint.com",
+                      "id": "@outputs('Create_file_4')?['body/Id']"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Get_file_metadata_2": {
+                  "runAfter": {
+                    "Get_file_content_5": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "4f7aac06-068c-4fa6-891b-5868b4ba87ab"
+                  },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "connectionName": "shared_sharepointonline",
+                      "operationId": "GetFileMetadata"
+                    },
+                    "parameters": {
+                      "dataset": "https://prodigygroupindia.sharepoint.com",
+                      "id": "@outputs('Create_file_3')?['body/Id']"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Get_file_properties_2": {
+                  "runAfter": {
+                    "Get_file_metadata_2": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "0b90e9fa-25d6-4143-b17c-794458460d54"
+                  },
+                  "type": "OpenApiConnection",
+                  "inputs": {
+                    "host": {
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                      "connectionName": "shared_sharepointonline",
+                      "operationId": "GetFileItem"
+                    },
+                    "parameters": {
+                      "dataset": "https://prodigygroupindia.sharepoint.com",
+                      "table": "4acfe8a9-fbf7-4d38-b4c7-bb1efb7a257a",
+                      "id": "@outputs('Get_file_metadata_2')?['body/ItemId']"
+                    },
+                    "authentication": "@parameters('$authentication')"
+                  }
+                },
+                "Filter_array_2": {
+                  "runAfter": {
+                    "Set_variable_11": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "3e5757b8-2ab5-4875-9330-bcfd2156d59d"
+                  },
+                  "type": "Query",
+                  "inputs": {
+                    "from": "@outputs('Get_items_3')?['body/value']",
+                    "where": "@or(\n  equals(toLower(item()?['field_5']), toLower(variables('NamePredict'))),\n  equals(item()?['field_6'], variables('PhoneNumberPredict')),\n  equals(item()?['CandidateMail'], variables('MailPredict'))\n)\n"
+                  }
+                },
+                "Set_variable_9": {
+                  "runAfter": {
+                    "Predict_2": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "2220c4a5-fea5-40b8-9699-e9d9a2470ae7"
+                  },
+                  "type": "SetVariable",
+                  "inputs": {
+                    "name": "NamePredict",
+                    "value": "@outputs('Predict_2')?['body/responsev2/predictionOutput/labels/Name/value']"
+                  }
+                },
+                "Set_variable_10": {
+                  "runAfter": {
+                    "LowerCase_Name_(Word)": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "4cdd3b35-eb4f-413b-8a30-816929cd7c1f"
+                  },
+                  "type": "SetVariable",
+                  "inputs": {
+                    "name": "PhoneNumberPredict",
+                    "value": "@outputs('Predict_2')?['body/responsev2/predictionOutput/labels/Phone_0072dba9aeed897e535aaad185c950c676/value']"
+                  }
+                },
+                "Set_variable_11": {
+                  "runAfter": {
+                    "Set_variable_10": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "8939df9b-f938-4748-9ce3-4a3a5a69e859"
+                  },
+                  "type": "SetVariable",
+                  "inputs": {
+                    "name": "MailPredict",
+                    "value": "@outputs('Predict_2')?['body/responsev2/predictionOutput/labels/EmailID/value']"
+                  }
+                },
+                "Condition_5": {
+                  "actions": {
+                    "Create_item": {
+                      "runAfter": {},
+                      "metadata": {
+                        "operationMetadataId": "583c6a49-7999-46b9-b0d8-2bc9a0e0d1b1"
+                      },
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                          "connectionName": "shared_sharepointonline",
+                          "operationId": "PostItem"
+                        },
+                        "parameters": {
+                          "dataset": "https://prodigygroupindia.sharepoint.com",
+                          "table": "fae424a7-c41c-495a-ab66-e1c5cbbd7728",
+                          "item/field_5": "@outputs('Predict_2')?['body/responsev2/predictionOutput/labels/Name/value']",
+                          "item/field_1": "@formatDateTime(utcNow(), 'MM-dd-yyyy')",
+                          "item/field_3": "@if(equals(length(variables('FileNameParts')), 10), variables('FileNameParts')[0], '')\r\n",
+                          "item/field_6": "@outputs('Predict_2')?['body/responsev2/predictionOutput/labels/Phone_0072dba9aeed897e535aaad185c950c676/value']",
+                          "item/CandidateMail": "@outputs('Predict_2')?['body/responsev2/predictionOutput/labels/EmailID/value']",
+                          "item/ConsultancyMail": "@triggerOutputs()?['body/from']",
+                          "item/field_11": "@if(equals(length(variables('FileNameParts')), 10), variables('FileNameParts')[8], '')",
+                          "item/field_2": "@if(equals(length(variables('FileNameParts')), 10), variables('FileNameParts')[1], '')\r\n",
+                          "item/field_9": "@if(equals(length(variables('FileNameParts')), 10), variables('FileNameParts')[6], '')",
+                          "item/field_10": "@if(equals(length(variables('FileNameParts')), 10), variables('FileNameParts')[7], '')",
+                          "item/ModeofWork": "@if(equals(length(variables('FileNameParts')), 10), variables('FileNameParts')[9], '')",
+                          "item/ResumeLink0": "@outputs('Get_file_properties_2')?['body/{Link}']",
+                          "item/field_8": "@if(equals(length(variables('FileNameParts')), 10), variables('FileNameParts')[3], '')"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      }
+                    },
+                    "Append_to_array_variable_6": {
+                      "runAfter": {
+                        "Add_attachment": [
+                          "Succeeded"
+                        ]
+                      },
+                      "metadata": {
+                        "operationMetadataId": "d7a5d261-3d3a-418a-b2a2-cffc8200d677"
+                      },
+                      "type": "AppendToArrayVariable",
+                      "inputs": {
+                        "name": "NewResumes",
+                        "value": "@outputs('Predict_2')?['body/responsev2/predictionOutput/labels/Name/value']"
+                      }
+                    },
+                    "Add_attachment": {
+                      "runAfter": {
+                        "Create_item": [
+                          "Succeeded"
+                        ]
+                      },
+                      "metadata": {
+                        "operationMetadataId": "84a5fe78-1ad2-4b37-8e61-d78c15d55705"
+                      },
+                      "type": "OpenApiConnection",
+                      "inputs": {
+                        "host": {
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                          "connectionName": "shared_sharepointonline",
+                          "operationId": "CreateAttachment"
+                        },
+                        "parameters": {
+                          "dataset": "https://prodigygroupindia.sharepoint.com",
+                          "table": "fae424a7-c41c-495a-ab66-e1c5cbbd7728",
+                          "itemId": "@outputs('Create_item')?['body/ID']",
+                          "displayName": "@{outputs('Predict_2')?['body/responsev2/predictionOutput/labels/Name/value']}.pdf",
+                          "body": "@body('Convert_file')"
+                        },
+                        "authentication": "@parameters('$authentication')"
+                      }
+                    }
+                  },
+                  "runAfter": {
+                    "Filter_array_2": [
+                      "Succeeded"
+                    ]
+                  },
+                  "else": {
+                    "actions": {
+                      "Append_to_array_variable_3": {
+                        "runAfter": {},
+                        "metadata": {
+                          "operationMetadataId": "cd040d35-0d7c-42f0-91cc-265e4c869e17"
+                        },
+                        "type": "AppendToArrayVariable",
+                        "inputs": {
+                          "name": "DuplicateResumes",
+                          "value": "@outputs('Predict_2')?['body/responsev2/predictionOutput/labels/Name/value']"
+                        }
+                      }
+                    }
+                  },
+                  "expression": {
+                    "equals": [
+                      "@length(body('Filter_array_2'))",
+                      0
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "4a874071-394b-4b66-a802-ec909ee40a3e"
+                  },
+                  "type": "If"
+                },
+                "LowerCase_Name_(Word)": {
+                  "runAfter": {
+                    "Set_variable_9": [
+                      "Succeeded"
+                    ]
+                  },
+                  "metadata": {
+                    "operationMetadataId": "1d3c7e0e-36de-4e64-b025-d3efefd18fbf"
+                  },
+                  "type": "Compose",
+                  "inputs": "@toLower(variables('NamePredict'))"
+                }
+              },
+              "runAfter": {
+                "Get_file_content_4": [
+                  "Succeeded"
+                ]
+              },
+              "else": {
+                "actions": {
+                  "Condition_3": {
+                    "actions": {
+                      "Get_file_metadata": {
+                        "runAfter": {
+                          "Set_variable_8": [
+                            "Succeeded"
+                          ]
+                        },
+                        "metadata": {
+                          "operationMetadataId": "edd06ba0-0e60-4c8a-a984-a851bd3ec2f9"
+                        },
+                        "type": "OpenApiConnection",
+                        "inputs": {
+                          "host": {
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                            "connectionName": "shared_sharepointonline",
+                            "operationId": "GetFileMetadata"
+                          },
+                          "parameters": {
+                            "dataset": "https://prodigygroupindia.sharepoint.com",
+                            "id": "@outputs('Create_file_4')?['body/Id']"
+                          },
+                          "authentication": "@parameters('$authentication')"
+                        }
+                      },
+                      "Get_file_properties": {
+                        "runAfter": {
+                          "Get_file_metadata": [
+                            "Succeeded"
+                          ]
+                        },
+                        "metadata": {
+                          "operationMetadataId": "1a7aea82-5384-4477-b110-8cf9b10f6625"
+                        },
+                        "type": "OpenApiConnection",
+                        "inputs": {
+                          "host": {
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                            "connectionName": "shared_sharepointonline",
+                            "operationId": "GetFileItem"
+                          },
+                          "parameters": {
+                            "dataset": "https://prodigygroupindia.sharepoint.com",
+                            "table": "4acfe8a9-fbf7-4d38-b4c7-bb1efb7a257a",
+                            "id": "@outputs('Get_file_metadata')?['body/ItemId']"
+                          },
+                          "authentication": "@parameters('$authentication')"
+                        }
+                      },
+                      "Delete_file": {
+                        "runAfter": {},
+                        "metadata": {
+                          "operationMetadataId": "06460cc9-2bdb-4b86-a643-eb292d5f73a5"
+                        },
+                        "type": "OpenApiConnection",
+                        "inputs": {
+                          "host": {
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_onedriveforbusiness",
+                            "connectionName": "shared_onedriveforbusiness",
+                            "operationId": "DeleteFile"
+                          },
+                          "parameters": {
+                            "id": "@outputs('Create_file_5')?['body/Id']"
+                          },
+                          "authentication": "@parameters('$authentication')"
+                        }
+                      },
+                      "Predict_3": {
+                        "runAfter": {
+                          "Delete_file": [
+                            "Succeeded"
+                          ]
+                        },
+                        "metadata": {
+                          "operationMetadataId": "b114c048-ea10-409e-b27c-ea261fd8deb1",
+                          "flowSystemMetadata": {
+                            "portalOperationId": "aibuilderpredict",
+                            "portalOperationGroup": "aibuilder",
+                            "portalOperationApiDisplayNameOverride": "AI Builder",
+                            "portalOperationIconOverride": "https://content.powerapps.com/resource/makerx/static/pauto/images/designeroperations/aiBuilderNew.51dbdb6b.png",
+                            "portalOperationBrandColorOverride": "#0A76C4",
+                            "portalOperationApiTierOverride": "Standard"
+                          }
+                        },
+                        "type": "OpenApiConnection",
+                        "inputs": {
+                          "host": {
+                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                            "connectionName": "shared_commondataserviceforapps",
+                            "operationId": "aibuilderpredict"
+                          },
+                          "parameters": {
+                            "recordId": "ac1a242a-bfcd-4857-b8e3-e1609c451af3",
+                            "item/requestv2/mimeType": "@body('Get_file_content_4')",
+                            "item/requestv2/base64Encoded": "@outputs('Get_Attachment_(V2)')?['body/contentBytes']"
+                          },
+                          "authentication": "@parameters('$authentication')"
+                        }
+                      },
+                      "Filter_array": {
+                        "runAfter": {
+                          "Get_file_properties": [
+                            "Succeeded"
+                          ]
+                        },
+                        "metadata": {
+                          "operationMetadataId": "22738bff-58ab-4d15-92cc-43c5fd86ed6b"
+                        },
+                        "type": "Query",
+                        "inputs": {
+                          "from": "@outputs('Get_items_3')?['body/value']",
+                          "where": "@or(\n  equals(toLower(item()?['field_5']), toLower(variables('NamePredict'))),\n  equals(item()?['field_6'], variables('PhoneNumberPredict')),\n  equals(item()?['CandidateMail'], variables('MailPredict'))\n)\n"
+                        }
+                      },
+                      "Set_variable_6": {
+                        "runAfter": {
+                          "Predict_3": [
+                            "Succeeded"
+                          ]
+                        },
+                        "metadata": {
+                          "operationMetadataId": "78c3ad64-23ae-4e5a-ba7b-427edb69415a"
+                        },
+                        "type": "SetVariable",
+                        "inputs": {
+                          "name": "NamePredict",
+                          "value": "@outputs('Predict_3')?['body/responsev2/predictionOutput/labels/Name/value']"
+                        }
+                      },
+                      "Set_variable_7": {
+                        "runAfter": {
+                          "LowerCase_Name": [
+                            "Succeeded"
+                          ]
+                        },
+                        "metadata": {
+                          "operationMetadataId": "80354461-9e9e-4dad-9877-5a85d8c4b29e"
+                        },
+                        "type": "SetVariable",
+                        "inputs": {
+                          "name": "PhoneNumberPredict",
+                          "value": "@outputs('Predict_3')?['body/responsev2/predictionOutput/labels/Phone_0072dba9aeed897e535aaad185c950c676/value']"
+                        }
+                      },
+                      "Set_variable_8": {
+                        "runAfter": {
+                          "Set_variable_7": [
+                            "Succeeded"
+                          ]
+                        },
+                        "metadata": {
+                          "operationMetadataId": "544709db-fd9e-4af7-a989-6065bab10857"
+                        },
+                        "type": "SetVariable",
+                        "inputs": {
+                          "name": "MailPredict",
+                          "value": "@outputs('Predict_3')?['body/responsev2/predictionOutput/labels/EmailID/value']"
+                        }
+                      },
+                      "Condition_4": {
+                        "actions": {
+                          "Append_to_array_variable_2": {
+                            "runAfter": {
+                              "Add_attachment_2": [
+                                "Succeeded"
+                              ]
+                            },
+                            "metadata": {
+                              "operationMetadataId": "c0706dd5-d2ac-4b47-9292-f34fc919fd57"
+                            },
+                            "type": "AppendToArrayVariable",
+                            "inputs": {
+                              "name": "NewResumes",
+                              "value": "@outputs('Predict_3')?['body/responsev2/predictionOutput/labels/Name/value']"
+                            }
+                          },
+                          "Create_item_2": {
+                            "runAfter": {},
+                            "metadata": {
+                              "operationMetadataId": "90123576-d1be-45bf-8691-b4a4b5632354"
+                            },
+                            "type": "OpenApiConnection",
+                            "inputs": {
+                              "host": {
+                                "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                "connectionName": "shared_sharepointonline",
+                                "operationId": "PostItem"
+                              },
+                              "parameters": {
+                                "dataset": "https://prodigygroupindia.sharepoint.com",
+                                "table": "fae424a7-c41c-495a-ab66-e1c5cbbd7728",
+                                "item/field_5": "@outputs('Predict_3')?['body/responsev2/predictionOutput/labels/Name/value']",
+                                "item/field_1": "@formatDateTime(utcNow(), 'MM-dd-yyyy')",
+                                "item/field_3": "@if(equals(length(variables('FileNameParts')), 10), variables('FileNameParts')[0], '')",
+                                "item/field_6": "@outputs('Predict_3')?['body/responsev2/predictionOutput/labels/Phone_0072dba9aeed897e535aaad185c950c676/value']",
+                                "item/CandidateMail": "@outputs('Predict_3')?['body/responsev2/predictionOutput/labels/EmailID/value']",
+                                "item/ConsultancyMail": "@triggerOutputs()?['body/from']",
+                                "item/field_11": "@if(equals(length(variables('FileNameParts')), 10), variables('FileNameParts')[8], '')",
+                                "item/field_2": "@if(equals(length(variables('FileNameParts')), 10), variables('FileNameParts')[1], '')",
+                                "item/field_9": "@if(equals(length(variables('FileNameParts')), 10), variables('FileNameParts')[6], '')",
+                                "item/field_10": "@if(equals(length(variables('FileNameParts')), 10), variables('FileNameParts')[7], '')",
+                                "item/ModeofWork": "@if(equals(length(variables('FileNameParts')), 10), variables('FileNameParts')[9], '')",
+                                "item/ResumeLink0": "@outputs('Get_file_properties')?['body/{Link}']",
+                                "item/field_8": "@if(equals(length(variables('FileNameParts')), 10), variables('FileNameParts')[3], '')"
+                              },
+                              "authentication": "@parameters('$authentication')"
+                            }
+                          },
+                          "Add_attachment_2": {
+                            "runAfter": {
+                              "Create_item_2": [
+                                "Succeeded"
+                              ]
+                            },
+                            "metadata": {
+                              "operationMetadataId": "9a9283d0-23f8-40ef-9691-d756621c5c61"
+                            },
+                            "type": "OpenApiConnection",
+                            "inputs": {
+                              "host": {
+                                "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                "connectionName": "shared_sharepointonline",
+                                "operationId": "CreateAttachment"
+                              },
+                              "parameters": {
+                                "dataset": "https://prodigygroupindia.sharepoint.com",
+                                "table": "fae424a7-c41c-495a-ab66-e1c5cbbd7728",
+                                "itemId": "@outputs('Create_item_2')?['body/ID']",
+                                "displayName": "@{outputs('Predict_3')?['body/responsev2/predictionOutput/labels/Name/value']}.pdf",
+                                "body": "@body('Get_file_content_4')"
+                              },
+                              "authentication": "@parameters('$authentication')"
+                            }
+                          }
+                        },
+                        "runAfter": {
+                          "Filter_array": [
+                            "Succeeded"
+                          ]
+                        },
+                        "else": {
+                          "actions": {
+                            "Append_to_array_variable": {
+                              "runAfter": {},
+                              "metadata": {
+                                "operationMetadataId": "a25f32cc-b294-40ae-81df-4d72c90e6340"
+                              },
+                              "type": "AppendToArrayVariable",
+                              "inputs": {
+                                "name": "DuplicateResumes",
+                                "value": "@outputs('Predict_3')?['body/responsev2/predictionOutput/labels/Name/value']"
+                              }
+                            }
+                          }
+                        },
+                        "expression": {
+                          "equals": [
+                            "@length(body('Filter_array'))\r\n",
+                            0
+                          ]
+                        },
+                        "metadata": {
+                          "operationMetadataId": "eb068084-daec-420c-aab9-6a8ea511b49a"
+                        },
+                        "type": "If"
+                      },
+                      "LowerCase_Name": {
+                        "runAfter": {
+                          "Set_variable_6": [
+                            "Succeeded"
+                          ]
+                        },
+                        "metadata": {
+                          "operationMetadataId": "7cae583b-6a19-413b-bfee-4d72ac645c83"
+                        },
+                        "type": "Compose",
+                        "inputs": "@toLower(variables('NamePredict'))\r\n"
+                      }
+                    },
+                    "runAfter": {},
+                    "expression": {
+                      "endsWith": [
+                        "@outputs('Create_file_5')?['body/Name']",
+                        ".pdf"
+                      ]
+                    },
+                    "metadata": {
+                      "operationMetadataId": "13ac9d1d-7d09-4c85-9df5-64bf0a38ec91"
+                    },
+                    "type": "If"
+                  }
+                }
+              },
+              "expression": {
+                "or": [
+                  {
+                    "endsWith": [
+                      "@outputs('Create_file_5')?['body/Name']",
+                      ".docx"
+                    ]
+                  },
+                  {
+                    "endsWith": [
+                      "@outputs('Create_file_5')?['body/Name']",
+                      ".doc"
+                    ]
+                  }
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "f045be10-0e5b-448e-b955-9b65c860a155"
+              },
+              "type": "If"
+            }
+          },
+          "runAfter": {
+            "Get_items_3": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "e1d05dca-41b7-4d9e-bb62-b88ae4a36944"
+          },
+          "type": "Foreach"
+        },
+        "Delay": {
+          "runAfter": {
+            "Reply_to_email_(V3)": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "efd17008-17e1-4523-84ec-824e8a52dbe1"
+          },
+          "type": "Wait",
+          "inputs": {
+            "interval": {
+              "count": 10,
+              "unit": "Second"
+            }
+          }
+        }
+      },
+      "outputs": {}
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}
