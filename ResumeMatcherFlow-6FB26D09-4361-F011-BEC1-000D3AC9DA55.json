@@ -1,0 +1,1844 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_sharepointonline": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "ab_sharedsharepointonline_59731"
+        },
+        "api": {
+          "name": "shared_sharepointonline"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        },
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        }
+      },
+      "triggers": {
+        "When_an_item_is_created": {
+          "recurrence": {
+            "frequency": "Minute",
+            "interval": 1
+          },
+          "splitOn": "@triggerOutputs()?['body/value']",
+          "metadata": {
+            "operationMetadataId": "569f794b-f924-483d-9c57-1186f83469d2"
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "https://prodigygroupindia.sharepoint.com",
+              "table": "fae424a7-c41c-495a-ab66-e1c5cbbd7728"
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "GetOnNewItems"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        }
+      },
+      "actions": {
+        "Get_item": {
+          "runAfter": {},
+          "metadata": {
+            "operationMetadataId": "402882e8-5fd8-476d-bf05-0e06d19ab88f"
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "https://prodigygroupindia.sharepoint.com",
+              "table": "fae424a7-c41c-495a-ab66-e1c5cbbd7728",
+              "id": "@triggerOutputs()?['body/ID']"
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "GetItem"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "Get_items": {
+          "runAfter": {
+            "Get_item": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "a98e5356-7e12-4a15-a9d0-5c8c0ae470fe"
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "parameters": {
+              "dataset": "https://prodigygroupindia.sharepoint.com",
+              "table": "cc7a3fb5-2ff5-47fd-a760-afc86f053204"
+            },
+            "host": {
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+              "connectionName": "shared_sharepointonline",
+              "operationId": "GetItems"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "ComposeUIUX_JD": {
+          "runAfter": {
+            "Get_items": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "7580afc4-c316-4db0-9f46-a1ca42ba9486"
+          },
+          "type": "Compose",
+          "inputs": "@first(outputs('Get_items')?['body/value'])?['JDText']\r\n"
+        },
+        "ComposeToLower": {
+          "runAfter": {
+            "ComposeHubspotJD": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "d267a0c1-5f93-4e9b-a46d-ca3c01f75b5a"
+          },
+          "type": "Compose",
+          "inputs": "@toLower(outputs('Get_item')?['body/AppliedPosition'])\r\n"
+        },
+        "ComposeSalesforceJD": {
+          "runAfter": {
+            "ComposeUIUX_JD": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "03e048c9-9bdf-4344-ac05-aa5d3687a0a6"
+          },
+          "type": "Compose",
+          "inputs": "@first(outputs('Get_items')?['body/value'])?['Salesforce_JD']\r\n"
+        },
+        "ComposeProjectManagerJD": {
+          "runAfter": {
+            "ComposeSalesforceJD": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "6f50cc85-9631-4667-9648-b3b3696e3f0d"
+          },
+          "type": "Compose",
+          "inputs": "@first(outputs('Get_items')?['body/value'])?['ProjectManager_JD']\r\n"
+        },
+        "ComposeDrupalJD": {
+          "runAfter": {
+            "ComposeProjectManagerJD": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "d9c59962-069c-4d0a-963a-3e97c50ca279"
+          },
+          "type": "Compose",
+          "inputs": "@first(outputs('Get_items')?['body/value'])?['Drupal_JD']\r\n"
+        },
+        "Condition": {
+          "actions": {
+            "ComposeAIPrompt": {
+              "metadata": {
+                "operationMetadataId": "9a4fb7b2-a062-4c4e-9cb3-71f4a30ff6c3"
+              },
+              "type": "Compose",
+              "inputs": [
+                {
+                  "role": "system",
+                  "content": "You are an AI assistant that compares resumes with job descriptions and strictly check if the resume is suitable or not and outputs structured JSON."
+                },
+                {
+                  "role": "user",
+                  "content": "Given this resume:\n@{outputs('Get_item')?['body/ResumeText']}\n\nAnd this job description:\n@{outputs('ComposeUIUX_JD')}\n\nExtract the following:\n1. Technical skills.\n2. Total experience.\n3. Match score out of 1 to 100% (Score being highest if he's more suitable and lowest if he is less suitable)\n4. Is the candidate suitable? (Yes/No)\n5. Brief explanation(short and precise).\n\nReturn exactly this JSON (skills and matchScore in string format):\n{\n  \"skills\": \"List of skills\",\n  \"experience\": \"Experience in text\",\n  \"matchScore\": 85%,\n  \"isSuitable\": \"Yes\",\n  \"matchReason\": \"Reason\"\n}"
+                }
+              ]
+            },
+            "HTTP": {
+              "runAfter": {
+                "ComposeAIPrompt": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "f5a88b60-9cbe-45fc-b76d-cf83d3a9e1ee"
+              },
+              "type": "Http",
+              "inputs": {
+                "uri": "https://resumejobmatcher.openai.azure.com/openai/deployments/jobmatchergpt-4o/chat/completions?api-version=2025-01-01-preview",
+                "method": "POST",
+                "headers": {
+                  "Content-Type": "application/json",
+                  "api-key": "SHxsDhdFD0tX6FdM1zg4uOAb2WggIlNUcszdkhrux7oJil3kkMnTJQQJ99BFACHYHv6XJ3w3AAABACOGrFDn"
+                },
+                "body": {
+                  "messages": "@outputs('ComposeAIPrompt')",
+                  "temperature": 0.7,
+                  "max_tokens": 500
+                }
+              }
+            },
+            "ExtractContent": {
+              "runAfter": {
+                "HTTP": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "00fe68d2-3c09-44d7-850d-b3e3ad7dab70"
+              },
+              "type": "Compose",
+              "inputs": "@body('HTTP')?['choices']?[0]?['message']?['content']\r\n"
+            },
+            "ComposeCleanJson": {
+              "runAfter": {
+                "ExtractContent": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "451f89d7-d7b3-4738-8539-ec361b07aa8c"
+              },
+              "type": "Compose",
+              "inputs": "@json(replace(replace(outputs('ExtractContent'), '```json', ''), '```', ''))\r\n"
+            },
+            "Parse_JSON": {
+              "runAfter": {
+                "ComposeCleanJson": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "ae9d4c9a-4025-449f-988f-8579bde75665"
+              },
+              "type": "ParseJson",
+              "inputs": {
+                "content": "@outputs('ComposeCleanJson')",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "skills": {
+                      "type": "string"
+                    },
+                    "experience": {
+                      "type": "string"
+                    },
+                    "matchScore": {
+                      "type": "string"
+                    },
+                    "isSuitable": {
+                      "type": "string"
+                    },
+                    "matchReason": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "Update_item_2": {
+              "runAfter": {
+                "Parse_JSON": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "ccc27eed-6d9a-47e5-8067-36de46514839"
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "https://prodigygroupindia.sharepoint.com",
+                  "table": "fae424a7-c41c-495a-ab66-e1c5cbbd7728",
+                  "id": "@triggerOutputs()?['body/ID']",
+                  "item/field_8": "@body('Parse_JSON')?['experience']",
+                  "item/ActualPosition": "@body('Parse_JSON_2')['suggestedPosition']",
+                  "item/IsSuitable": "@body('Parse_JSON')?['isSuitable']",
+                  "item/ExtractedSkills": "@body('Parse_JSON')?['skills']",
+                  "item/MatchReasonUnmatchedSkills_x0028": "@body('Parse_JSON')?['matchReason']",
+                  "item/MatchScore_x0028__x0025__x0029_": "@body('Parse_JSON')?['matchScore']"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "connectionName": "shared_sharepointonline",
+                  "operationId": "PatchItem"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            }
+          },
+          "runAfter": {
+            "Parse_JSON_2": [
+              "Succeeded"
+            ]
+          },
+          "else": {
+            "actions": {
+              "Condition_2": {
+                "actions": {
+                  "ComposeAIPrompt-copy": {
+                    "metadata": {
+                      "operationMetadataId": "9a4fb7b2-a062-4c4e-9cb3-71f4a30ff6c3"
+                    },
+                    "type": "Compose",
+                    "inputs": [
+                      {
+                        "role": "system",
+                        "content": "You are an AI assistant that compares resumes with job descriptions and strictly check if the resume is suitable or not and outputs structured JSON."
+                      },
+                      {
+                        "role": "user",
+                        "content": "Given this resume:\n@{outputs('Get_item')?['body/ResumeText']}\n\nAnd this job description:\n@{outputs('ComposeSalesforceJD')}\n\nExtract the following:\n1. Technical skills.\n2. Total experience.\n3. Match score out of 1 to 100% (Score being highest if he's more suitable and lowest if he is less suitable)\n4. Is the candidate suitable? (Yes/No)\n5. Brief explanation(short and precise).\n\nReturn exactly this JSON (skills and matchScore in string format):\n{\n  \"skills\": \"List of skills\",\n  \"experience\": \"Experience in text\",\n  \"matchScore\": 85%,\n  \"isSuitable\": \"Yes\",\n  \"matchReason\": \"Reason\"\n}"
+                      }
+                    ]
+                  },
+                  "HTTP-copy": {
+                    "runAfter": {
+                      "ComposeAIPrompt-copy": [
+                        "Succeeded"
+                      ]
+                    },
+                    "metadata": {
+                      "operationMetadataId": "f5a88b60-9cbe-45fc-b76d-cf83d3a9e1ee"
+                    },
+                    "type": "Http",
+                    "inputs": {
+                      "uri": "https://resumejobmatcher.openai.azure.com/openai/deployments/jobmatchergpt-4o/chat/completions?api-version=2025-01-01-preview",
+                      "method": "POST",
+                      "headers": {
+                        "Content-Type": "application/json",
+                        "api-key": "SHxsDhdFD0tX6FdM1zg4uOAb2WggIlNUcszdkhrux7oJil3kkMnTJQQJ99BFACHYHv6XJ3w3AAABACOGrFDn"
+                      },
+                      "body": {
+                        "messages": "@outputs('ComposeAIPrompt-copy')",
+                        "temperature": 0.7,
+                        "max_tokens": 500
+                      }
+                    }
+                  },
+                  "ExtractContent-copy": {
+                    "runAfter": {
+                      "HTTP-copy": [
+                        "Succeeded"
+                      ]
+                    },
+                    "metadata": {
+                      "operationMetadataId": "00fe68d2-3c09-44d7-850d-b3e3ad7dab70"
+                    },
+                    "type": "Compose",
+                    "inputs": "@body('HTTP-copy')?['choices']?[0]?['message']?['content']\r\n"
+                  },
+                  "ComposeCleanJson-copy": {
+                    "runAfter": {
+                      "ExtractContent-copy": [
+                        "Succeeded"
+                      ]
+                    },
+                    "metadata": {
+                      "operationMetadataId": "451f89d7-d7b3-4738-8539-ec361b07aa8c"
+                    },
+                    "type": "Compose",
+                    "inputs": "@json(replace(replace(outputs('ExtractContent-copy'), '```json', ''), '```', ''))\r\n"
+                  },
+                  "Parse_JSON-copy": {
+                    "runAfter": {
+                      "ComposeCleanJson-copy": [
+                        "Succeeded"
+                      ]
+                    },
+                    "metadata": {
+                      "operationMetadataId": "ae9d4c9a-4025-449f-988f-8579bde75665"
+                    },
+                    "type": "ParseJson",
+                    "inputs": {
+                      "content": "@outputs('ComposeCleanJson-copy')",
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "skills": {
+                            "type": "string"
+                          },
+                          "experience": {
+                            "type": "string"
+                          },
+                          "matchScore": {
+                            "type": "string"
+                          },
+                          "isSuitable": {
+                            "type": "string"
+                          },
+                          "matchReason": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "Update_item_3": {
+                    "runAfter": {
+                      "Parse_JSON-copy": [
+                        "Succeeded"
+                      ]
+                    },
+                    "metadata": {
+                      "operationMetadataId": "51d8a0d7-0e89-45d4-b149-c947435b052f"
+                    },
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "dataset": "https://prodigygroupindia.sharepoint.com",
+                        "table": "fae424a7-c41c-495a-ab66-e1c5cbbd7728",
+                        "id": "@triggerOutputs()?['body/ID']",
+                        "item/field_8": "@body('Parse_JSON-copy')?['experience']",
+                        "item/ActualPosition": "@body('Parse_JSON_2')['suggestedPosition']",
+                        "item/IsSuitable": "@body('Parse_JSON-copy')?['isSuitable']",
+                        "item/ExtractedSkills": "@body('Parse_JSON-copy')?['skills']",
+                        "item/MatchReasonUnmatchedSkills_x0028": "@body('Parse_JSON-copy')?['matchReason']",
+                        "item/MatchScore_x0028__x0025__x0029_": "@body('Parse_JSON-copy')?['matchScore']"
+                      },
+                      "host": {
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                        "connectionName": "shared_sharepointonline",
+                        "operationId": "PatchItem"
+                      },
+                      "authentication": "@parameters('$authentication')"
+                    }
+                  }
+                },
+                "else": {
+                  "actions": {
+                    "Condition_1": {
+                      "actions": {
+                        "ComposeAIPrompt-Drupal": {
+                          "metadata": {
+                            "operationMetadataId": "9a4fb7b2-a062-4c4e-9cb3-71f4a30ff6c3"
+                          },
+                          "type": "Compose",
+                          "inputs": [
+                            {
+                              "role": "system",
+                              "content": "You are an AI assistant that compares resumes with job descriptions and strictly check if the resume is suitable or not and outputs structured JSON."
+                            },
+                            {
+                              "role": "user",
+                              "content": "Given this resume:\n@{outputs('Get_item')?['body/ResumeText']}\n\nAnd this job description:\n@{outputs('ComposeDrupalJD')}\n\nExtract the following:\n1. Technical skills.\n2. Total experience.\n3. Match score out of 1 to 100%(Score being highest if he's more suitable and lowest if not).\n4. Is the candidate suitable? (Yes/No)\n5. Brief explanation(short and precise).\n\nReturn exactly this JSON(skills and matchScore in string format):\n{\n  \"skills\": \"List of skills\",\n  \"experience\": \"Experience in text\",\n  \"matchScore\": 85%,\n  \"isSuitable\": \"Yes\",\n  \"matchReason\": \"Reason\"\n}"
+                            }
+                          ]
+                        },
+                        "HTTP-Drupal": {
+                          "runAfter": {
+                            "ComposeAIPrompt-Drupal": [
+                              "Succeeded"
+                            ]
+                          },
+                          "metadata": {
+                            "operationMetadataId": "f5a88b60-9cbe-45fc-b76d-cf83d3a9e1ee"
+                          },
+                          "type": "Http",
+                          "inputs": {
+                            "uri": "https://resumejobmatcher.openai.azure.com/openai/deployments/jobmatchergpt-4o/chat/completions?api-version=2025-01-01-preview",
+                            "method": "POST",
+                            "headers": {
+                              "Content-Type": "application/json",
+                              "api-key": "SHxsDhdFD0tX6FdM1zg4uOAb2WggIlNUcszdkhrux7oJil3kkMnTJQQJ99BFACHYHv6XJ3w3AAABACOGrFDn"
+                            },
+                            "body": {
+                              "messages": "@outputs('ComposeAIPrompt-Drupal')",
+                              "temperature": 0.7,
+                              "max_tokens": 500
+                            }
+                          }
+                        },
+                        "ExtractContent-Drupal": {
+                          "runAfter": {
+                            "HTTP-Drupal": [
+                              "Succeeded"
+                            ]
+                          },
+                          "metadata": {
+                            "operationMetadataId": "00fe68d2-3c09-44d7-850d-b3e3ad7dab70"
+                          },
+                          "type": "Compose",
+                          "inputs": "@body('HTTP-Drupal')?['choices']?[0]?['message']?['content']\r\n"
+                        },
+                        "ComposeCleanJson-Drupal": {
+                          "runAfter": {
+                            "ExtractContent-Drupal": [
+                              "Succeeded"
+                            ]
+                          },
+                          "metadata": {
+                            "operationMetadataId": "451f89d7-d7b3-4738-8539-ec361b07aa8c"
+                          },
+                          "type": "Compose",
+                          "inputs": "@json(replace(replace(outputs('ExtractContent-Drupal'), '```json', ''), '```', ''))\r\n"
+                        },
+                        "Parse_JSON-Drupal": {
+                          "runAfter": {
+                            "ComposeCleanJson-Drupal": [
+                              "Succeeded"
+                            ]
+                          },
+                          "metadata": {
+                            "operationMetadataId": "ae9d4c9a-4025-449f-988f-8579bde75665"
+                          },
+                          "type": "ParseJson",
+                          "inputs": {
+                            "content": "@outputs('ComposeCleanJson-Drupal')",
+                            "schema": {
+                              "type": "object",
+                              "properties": {
+                                "skills": {
+                                  "type": "string"
+                                },
+                                "experience": {
+                                  "type": "string"
+                                },
+                                "matchScore": {
+                                  "type": "string"
+                                },
+                                "isSuitable": {
+                                  "type": "string"
+                                },
+                                "matchReason": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "Update_item": {
+                          "runAfter": {
+                            "Parse_JSON-Drupal": [
+                              "Succeeded"
+                            ]
+                          },
+                          "metadata": {
+                            "operationMetadataId": "c23ca817-b8a5-4ca3-957e-4d93f506d4a3"
+                          },
+                          "type": "OpenApiConnection",
+                          "inputs": {
+                            "parameters": {
+                              "dataset": "https://prodigygroupindia.sharepoint.com",
+                              "table": "fae424a7-c41c-495a-ab66-e1c5cbbd7728",
+                              "id": "@triggerBody()?['ID']",
+                              "item/field_8": "@body('Parse_JSON-Drupal')?['experience']",
+                              "item/ActualPosition": "@body('Parse_JSON_2')['suggestedPosition']",
+                              "item/IsSuitable": "@body('Parse_JSON-Drupal')?['isSuitable']",
+                              "item/ExtractedSkills": "@body('Parse_JSON-Drupal')?['skills']",
+                              "item/MatchReasonUnmatchedSkills_x0028": "@body('Parse_JSON-Drupal')?['matchReason']",
+                              "item/MatchScore_x0028__x0025__x0029_": "@body('Parse_JSON-Drupal')?['matchScore']"
+                            },
+                            "host": {
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                              "connectionName": "shared_sharepointonline",
+                              "operationId": "PatchItem"
+                            },
+                            "authentication": "@parameters('$authentication')"
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {}
+                      },
+                      "expression": {
+                        "and": [
+                          {
+                            "contains": [
+                              "@outputs('ComposeToLower')",
+                              "drupal"
+                            ]
+                          }
+                        ]
+                      },
+                      "metadata": {
+                        "operationMetadataId": "2c14dcc6-1a22-49c0-966c-69564e748ba0"
+                      },
+                      "type": "If"
+                    }
+                  }
+                },
+                "expression": {
+                  "contains": [
+                    "@outputs('ComposeToLower')",
+                    "salesforce"
+                  ]
+                },
+                "metadata": {
+                  "operationMetadataId": "46417170-aaea-41f5-aac1-c0397a8949fb"
+                },
+                "type": "If"
+              }
+            }
+          },
+          "expression": {
+            "contains": [
+              "@outputs('ComposeToLower')",
+              "ui/ux"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "77e8a885-6270-46da-8f61-f786246445ed"
+          },
+          "type": "If"
+        },
+        "ComposeRolePrompt": {
+          "runAfter": {
+            "ComposeToLower": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "2aefcfbe-5e86-4375-85b4-ff748f9f6185"
+          },
+          "type": "Compose",
+          "inputs": {
+            "model": "gpt-4o",
+            "messages": [
+              {
+                "role": "system",
+                "content": "You are an HR assistant that extracts information from resumes."
+              },
+              {
+                "role": "user",
+                "content": "From the resume text below, identify the job position or role this candidate is most likely applying for. Return only JSON format like below:\n\n```json\n{\n  \"suggestedPosition\": \"UI/UX Designer\"\n}\n```\n\nResume:\n@{outputs('Get_item')?['body/ResumeText']}"
+              }
+            ],
+            "temperature": 0.2
+          }
+        },
+        "HTTP_2": {
+          "runAfter": {
+            "ComposeRolePrompt": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "c94f11d7-d89b-49b5-b033-a66e90ec517a"
+          },
+          "type": "Http",
+          "inputs": {
+            "uri": "https://resumejobmatcher.openai.azure.com/openai/deployments/jobmatchergpt-4o/chat/completions?api-version=2025-01-01-preview",
+            "method": "POST",
+            "headers": {
+              "Content-Type": "application/json",
+              "api-key": "SHxsDhdFD0tX6FdM1zg4uOAb2WggIlNUcszdkhrux7oJil3kkMnTJQQJ99BFACHYHv6XJ3w3AAABACOGrFDn"
+            },
+            "body": "@outputs('ComposeRolePrompt')"
+          }
+        },
+        "ExtractContent_Role": {
+          "runAfter": {
+            "HTTP_2": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "481043e3-d862-431a-a882-d80bde281959"
+          },
+          "type": "Compose",
+          "inputs": "@{body('HTTP_2')?['choices']?[0]?['message']?['content']}\n"
+        },
+        "Compose_2": {
+          "runAfter": {
+            "ExtractContent_Role": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "32157ba6-4090-44d5-8046-79d92f2cfbf7"
+          },
+          "type": "Compose",
+          "inputs": "@{json(replace(replace(outputs('ExtractContent_Role'), '```json', ''), '```', ''))}\n"
+        },
+        "Parse_JSON_2": {
+          "runAfter": {
+            "Compose_2": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "6a3556eb-5b1f-4316-8964-27a47b48e881"
+          },
+          "type": "ParseJson",
+          "inputs": {
+            "content": "@outputs('Compose_2')",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "suggestedPosition": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "suggestedPosition"
+              ]
+            }
+          }
+        },
+        "Condition_3": {
+          "actions": {
+            "ComposeAIPrompt-PM": {
+              "metadata": {
+                "operationMetadataId": "9a4fb7b2-a062-4c4e-9cb3-71f4a30ff6c3"
+              },
+              "type": "Compose",
+              "inputs": [
+                {
+                  "role": "system",
+                  "content": "You are an AI assistant that compares resumes with job descriptions and strictly cjeck if the resume is suitable or not and outputs structured JSON."
+                },
+                {
+                  "role": "user",
+                  "content": "Given this resume:\n@{outputs('Get_item')?['body/ResumeText']}\n\nAnd this job description:\n@{outputs('ComposeProjectManagerJD')}\n\nExtract the following:\n1. Technical skills.\n2. Total experience.\n3. Match score out of 1 to 100%(Score being the highest if he's more suitable and lowest if not).\n4. Is the candidate suitable? (Yes/No)\n5. Brief explanation(short and precise).\n\nReturn exactly this JSON(skills and matchScore in string format):\n{\n  \"skills\": \"List of skills\",\n  \"experience\": \"Experience in text\",\n  \"matchScore\": 85%,\n  \"isSuitable\": \"Yes\",\n  \"matchReason\": \"Reason\"\n}"
+                }
+              ]
+            },
+            "HTTP-PM": {
+              "runAfter": {
+                "ComposeAIPrompt-PM": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "f5a88b60-9cbe-45fc-b76d-cf83d3a9e1ee"
+              },
+              "type": "Http",
+              "inputs": {
+                "uri": "https://resumejobmatcher.openai.azure.com/openai/deployments/jobmatchergpt-4o/chat/completions?api-version=2025-01-01-preview",
+                "method": "POST",
+                "headers": {
+                  "Content-Type": "application/json",
+                  "api-key": "SHxsDhdFD0tX6FdM1zg4uOAb2WggIlNUcszdkhrux7oJil3kkMnTJQQJ99BFACHYHv6XJ3w3AAABACOGrFDn"
+                },
+                "body": {
+                  "messages": "@outputs('ComposeAIPrompt-PM')",
+                  "temperature": 0.7,
+                  "max_tokens": 500
+                }
+              }
+            },
+            "ExtractContent-PM": {
+              "runAfter": {
+                "HTTP-PM": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "00fe68d2-3c09-44d7-850d-b3e3ad7dab70"
+              },
+              "type": "Compose",
+              "inputs": "@body('HTTP-PM')?['choices']?[0]?['message']?['content']\r\n"
+            },
+            "ComposeCleanJson-PM": {
+              "runAfter": {
+                "ExtractContent-PM": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "451f89d7-d7b3-4738-8539-ec361b07aa8c"
+              },
+              "type": "Compose",
+              "inputs": "@json(replace(replace(outputs('ExtractContent-PM'), '```json', ''), '```', ''))\r\n"
+            },
+            "Parse_JSON-PM": {
+              "runAfter": {
+                "ComposeCleanJson-PM": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "ae9d4c9a-4025-449f-988f-8579bde75665"
+              },
+              "type": "ParseJson",
+              "inputs": {
+                "content": "@outputs('ComposeCleanJson-PM')",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "skills": {
+                      "type": "string"
+                    },
+                    "experience": {
+                      "type": "string"
+                    },
+                    "matchScore": {
+                      "type": "string"
+                    },
+                    "isSuitable": {
+                      "type": "string"
+                    },
+                    "matchReason": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "Update_item_1": {
+              "runAfter": {
+                "Parse_JSON-PM": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "ad5da2f3-c161-4e0d-b5e4-7778ddc8d159"
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "https://prodigygroupindia.sharepoint.com",
+                  "table": "fae424a7-c41c-495a-ab66-e1c5cbbd7728",
+                  "id": "@triggerBody()?['ID']",
+                  "item/field_8": "@body('Parse_JSON-PM')?['experience']",
+                  "item/ActualPosition": "@body('Parse_JSON_2')['suggestedPosition']",
+                  "item/IsSuitable": "@body('Parse_JSON-PM')?['isSuitable']",
+                  "item/ExtractedSkills": "@body('Parse_JSON-PM')?['skills']",
+                  "item/MatchReasonUnmatchedSkills_x0028": "@body('Parse_JSON-PM')?['matchReason']",
+                  "item/MatchScore_x0028__x0025__x0029_": "@body('Parse_JSON-PM')?['matchScore']"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "connectionName": "shared_sharepointonline",
+                  "operationId": "PatchItem"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            }
+          },
+          "runAfter": {
+            "Parse_JSON_2": [
+              "Succeeded"
+            ]
+          },
+          "else": {
+            "actions": {
+              "Condition_4": {
+                "actions": {
+                  "ComposeAIPrompt-QA": {
+                    "metadata": {
+                      "operationMetadataId": "9a4fb7b2-a062-4c4e-9cb3-71f4a30ff6c3"
+                    },
+                    "type": "Compose",
+                    "inputs": [
+                      {
+                        "role": "system",
+                        "content": "You are an AI assistant that compares resumes with job descriptions and strictly cjeck if the resume is suitable or not and outputs structured JSON."
+                      },
+                      {
+                        "role": "user",
+                        "content": "Given this resume:\n@{outputs('Get_item')?['body/ResumeText']}\n\nAnd this job description:\n@{outputs('ComposeQAjd')}\n\nExtract the following:\n1. Technical skills.\n2. Total experience.\n3. Match score out of 1 to 100%(Score being the highest if he's more suitable and lowest if not).\n4. Is the candidate suitable? (Yes/No)\n5. Brief explanation(short and precise).\n\nReturn exactly this JSON(skills and matchScore in string format):\n{\n  \"skills\": \"List of skills\",\n  \"experience\": \"Experience in text\",\n  \"matchScore\": 85%,\n  \"isSuitable\": \"Yes\",\n  \"matchReason\": \"Reason\"\n}"
+                      }
+                    ]
+                  },
+                  "HTTP-QA": {
+                    "runAfter": {
+                      "ComposeAIPrompt-QA": [
+                        "Succeeded"
+                      ]
+                    },
+                    "metadata": {
+                      "operationMetadataId": "f5a88b60-9cbe-45fc-b76d-cf83d3a9e1ee"
+                    },
+                    "type": "Http",
+                    "inputs": {
+                      "uri": "https://resumejobmatcher.openai.azure.com/openai/deployments/jobmatchergpt-4o/chat/completions?api-version=2025-01-01-preview",
+                      "method": "POST",
+                      "headers": {
+                        "Content-Type": "application/json",
+                        "api-key": "SHxsDhdFD0tX6FdM1zg4uOAb2WggIlNUcszdkhrux7oJil3kkMnTJQQJ99BFACHYHv6XJ3w3AAABACOGrFDn"
+                      },
+                      "body": {
+                        "messages": "@outputs('ComposeAIPrompt-QA')",
+                        "temperature": 0.7,
+                        "max_tokens": 500
+                      }
+                    }
+                  },
+                  "ExtractContent-QA": {
+                    "runAfter": {
+                      "HTTP-QA": [
+                        "Succeeded"
+                      ]
+                    },
+                    "metadata": {
+                      "operationMetadataId": "00fe68d2-3c09-44d7-850d-b3e3ad7dab70"
+                    },
+                    "type": "Compose",
+                    "inputs": "@body('HTTP-QA')?['choices']?[0]?['message']?['content']\r\n"
+                  },
+                  "ComposeCleanJson-QA": {
+                    "runAfter": {
+                      "ExtractContent-QA": [
+                        "Succeeded"
+                      ]
+                    },
+                    "metadata": {
+                      "operationMetadataId": "451f89d7-d7b3-4738-8539-ec361b07aa8c"
+                    },
+                    "type": "Compose",
+                    "inputs": "@json(replace(replace(outputs('ExtractContent-QA'), '```json', ''), '```', ''))\r\n"
+                  },
+                  "Parse_JSON-QA": {
+                    "runAfter": {
+                      "ComposeCleanJson-QA": [
+                        "Succeeded"
+                      ]
+                    },
+                    "metadata": {
+                      "operationMetadataId": "ae9d4c9a-4025-449f-988f-8579bde75665"
+                    },
+                    "type": "ParseJson",
+                    "inputs": {
+                      "content": "@outputs('ComposeCleanJson-QA')",
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "skills": {
+                            "type": "string"
+                          },
+                          "experience": {
+                            "type": "string"
+                          },
+                          "matchScore": {
+                            "type": "string"
+                          },
+                          "isSuitable": {
+                            "type": "string"
+                          },
+                          "matchReason": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "Update_item_4": {
+                    "runAfter": {
+                      "Parse_JSON-QA": [
+                        "Succeeded"
+                      ]
+                    },
+                    "metadata": {
+                      "operationMetadataId": "a032c434-c7f0-4b04-988e-42bdbcc730d0"
+                    },
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "dataset": "https://prodigygroupindia.sharepoint.com",
+                        "table": "fae424a7-c41c-495a-ab66-e1c5cbbd7728",
+                        "id": "@triggerBody()?['ID']",
+                        "item/field_8": "@body('Parse_JSON-QA')?['experience']",
+                        "item/ActualPosition": "@body('Parse_JSON_2')['suggestedPosition']",
+                        "item/IsSuitable": "@body('Parse_JSON-QA')?['isSuitable']",
+                        "item/ExtractedSkills": "@body('Parse_JSON-QA')?['skills']",
+                        "item/MatchReasonUnmatchedSkills_x0028": "@body('Parse_JSON-QA')?['matchReason']",
+                        "item/MatchScore_x0028__x0025__x0029_": "@body('Parse_JSON-QA')?['matchScore']"
+                      },
+                      "host": {
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                        "connectionName": "shared_sharepointonline",
+                        "operationId": "PatchItem"
+                      },
+                      "authentication": "@parameters('$authentication')"
+                    }
+                  }
+                },
+                "else": {
+                  "actions": {}
+                },
+                "expression": {
+                  "and": [
+                    {
+                      "contains": [
+                        "@outputs('ComposeToLower')",
+                        "qa"
+                      ]
+                    }
+                  ]
+                },
+                "metadata": {
+                  "operationMetadataId": "f203ef32-f095-41ab-97e3-4b2d5e702619"
+                },
+                "type": "If"
+              }
+            }
+          },
+          "expression": {
+            "and": [
+              {
+                "contains": [
+                  "@outputs('ComposeToLower')",
+                  "project manager"
+                ]
+              }
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "8b956f40-93fa-4f0b-8a83-415fbb6450cc"
+          },
+          "type": "If"
+        },
+        "ComposeQAjd": {
+          "runAfter": {
+            "ComposeDrupalJD": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "f42083a5-af6c-41a1-9968-2d6ea54a9863"
+          },
+          "type": "Compose",
+          "inputs": "@first(outputs('Get_items')?['body/value'])?['QA_JD']\r\n"
+        },
+        "ComposeWordpressJD": {
+          "runAfter": {
+            "ComposeQAjd": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "927b5416-4fb0-4282-9dec-1e7ad5d13262"
+          },
+          "type": "Compose",
+          "inputs": "@first(outputs('Get_items')?['body/value'])?['Wordpress_JD']\r\n"
+        },
+        "Condition_5": {
+          "actions": {
+            "ComposeAIPrompt-Wordpress": {
+              "metadata": {
+                "operationMetadataId": "9a4fb7b2-a062-4c4e-9cb3-71f4a30ff6c3"
+              },
+              "type": "Compose",
+              "inputs": [
+                {
+                  "role": "system",
+                  "content": "You are an AI assistant that compares resumes with job descriptions and strictly cjeck if the resume is suitable or not and outputs structured JSON."
+                },
+                {
+                  "role": "user",
+                  "content": "Given this resume:\n@{outputs('Get_item')?['body/ResumeText']}\n\nAnd this job description:\n@{outputs('ComposeWordpressJD')}\n\nExtract the following:\n1. Technical skills.\n2. Total experience.\n3. Match score out of 1 to 100%(Score being the highest if he's more suitable and lowest if not).\n4. Is the candidate suitable? (Yes/No)\n5. Brief explanation(short and precise).\n\nReturn exactly this JSON(skills and matchScore in string format):\n{\n  \"skills\": \"List of skills\",\n  \"experience\": \"Experience in text\",\n  \"matchScore\": 85%,\n  \"isSuitable\": \"Yes\",\n  \"matchReason\": \"Reason\"\n}"
+                }
+              ]
+            },
+            "HTTP-Wordpress": {
+              "runAfter": {
+                "ComposeAIPrompt-Wordpress": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "f5a88b60-9cbe-45fc-b76d-cf83d3a9e1ee"
+              },
+              "type": "Http",
+              "inputs": {
+                "uri": "https://resumejobmatcher.openai.azure.com/openai/deployments/jobmatchergpt-4o/chat/completions?api-version=2025-01-01-preview",
+                "method": "POST",
+                "headers": {
+                  "Content-Type": "application/json",
+                  "api-key": "SHxsDhdFD0tX6FdM1zg4uOAb2WggIlNUcszdkhrux7oJil3kkMnTJQQJ99BFACHYHv6XJ3w3AAABACOGrFDn"
+                },
+                "body": {
+                  "messages": "@outputs('ComposeAIPrompt-Wordpress')",
+                  "temperature": 0.7,
+                  "max_tokens": 500
+                }
+              }
+            },
+            "ExtractContent-Wordpress": {
+              "runAfter": {
+                "HTTP-Wordpress": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "00fe68d2-3c09-44d7-850d-b3e3ad7dab70"
+              },
+              "type": "Compose",
+              "inputs": "@body('HTTP-Wordpress')?['choices']?[0]?['message']?['content']\r\n"
+            },
+            "ComposeCleanJson-Wordpress": {
+              "runAfter": {
+                "ExtractContent-Wordpress": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "451f89d7-d7b3-4738-8539-ec361b07aa8c"
+              },
+              "type": "Compose",
+              "inputs": "@json(replace(replace(outputs('ExtractContent-Wordpress'), '```json', ''), '```', ''))\r\n"
+            },
+            "Parse_JSON-Wordpress": {
+              "runAfter": {
+                "ComposeCleanJson-Wordpress": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "ae9d4c9a-4025-449f-988f-8579bde75665"
+              },
+              "type": "ParseJson",
+              "inputs": {
+                "content": "@outputs('ComposeCleanJson-Wordpress')",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "skills": {
+                      "type": "string"
+                    },
+                    "experience": {
+                      "type": "string"
+                    },
+                    "matchScore": {
+                      "type": "string"
+                    },
+                    "isSuitable": {
+                      "type": "string"
+                    },
+                    "matchReason": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "Update_item_5": {
+              "runAfter": {
+                "Parse_JSON-Wordpress": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "6c83b63f-8091-4b59-b9df-b01908dedb66"
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "https://prodigygroupindia.sharepoint.com",
+                  "table": "fae424a7-c41c-495a-ab66-e1c5cbbd7728",
+                  "id": "@triggerBody()?['ID']",
+                  "item/field_8": "@body('Parse_JSON-Wordpress')?['experience']",
+                  "item/ActualPosition": "@body('Parse_JSON_2')['suggestedPosition']",
+                  "item/IsSuitable": "@body('Parse_JSON-Wordpress')?['isSuitable']",
+                  "item/ExtractedSkills": "@body('Parse_JSON-Wordpress')?['skills']",
+                  "item/MatchReasonUnmatchedSkills_x0028": "@body('Parse_JSON-Wordpress')?['matchReason']",
+                  "item/MatchScore_x0028__x0025__x0029_": "@body('Parse_JSON-Wordpress')?['matchScore']"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "connectionName": "shared_sharepointonline",
+                  "operationId": "PatchItem"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            }
+          },
+          "runAfter": {
+            "Parse_JSON_2": [
+              "Succeeded"
+            ]
+          },
+          "else": {
+            "actions": {
+              "Condition_6": {
+                "actions": {
+                  "ComposeAIPrompt-WebDev": {
+                    "metadata": {
+                      "operationMetadataId": "9a4fb7b2-a062-4c4e-9cb3-71f4a30ff6c3"
+                    },
+                    "type": "Compose",
+                    "inputs": [
+                      {
+                        "role": "system",
+                        "content": "You are an AI assistant that compares resumes with job descriptions and strictly cjeck if the resume is suitable or not and outputs structured JSON."
+                      },
+                      {
+                        "role": "user",
+                        "content": "Given this resume:\n@{outputs('Get_item')?['body/ResumeText']}\n\nAnd this job description:\n@{outputs('ComposeWebDevJD')}\n\nExtract the following:\n1. Technical skills.\n2. Total experience.\n3. Match score out of 1 to 100%(Score being the highest if he's more suitable and lowest if not).\n4. Is the candidate suitable? (Yes/No)\n5. Brief explanation(short and precise).\n\nReturn exactly this JSON(skills and matchScore in string format):\n{\n  \"skills\": \"List of skills\",\n  \"experience\": \"Experience in text\",\n  \"matchScore\": 85%,\n  \"isSuitable\": \"Yes\",\n  \"matchReason\": \"Reason\"\n}"
+                      }
+                    ]
+                  },
+                  "HTTP-WebDev": {
+                    "runAfter": {
+                      "ComposeAIPrompt-WebDev": [
+                        "Succeeded"
+                      ]
+                    },
+                    "metadata": {
+                      "operationMetadataId": "f5a88b60-9cbe-45fc-b76d-cf83d3a9e1ee"
+                    },
+                    "type": "Http",
+                    "inputs": {
+                      "uri": "https://resumejobmatcher.openai.azure.com/openai/deployments/jobmatchergpt-4o/chat/completions?api-version=2025-01-01-preview",
+                      "method": "POST",
+                      "headers": {
+                        "Content-Type": "application/json",
+                        "api-key": "SHxsDhdFD0tX6FdM1zg4uOAb2WggIlNUcszdkhrux7oJil3kkMnTJQQJ99BFACHYHv6XJ3w3AAABACOGrFDn"
+                      },
+                      "body": {
+                        "messages": "@outputs('ComposeAIPrompt-WebDev')",
+                        "temperature": 0.7,
+                        "max_tokens": 500
+                      }
+                    }
+                  },
+                  "ExtractContent-WebDev": {
+                    "runAfter": {
+                      "HTTP-WebDev": [
+                        "Succeeded"
+                      ]
+                    },
+                    "metadata": {
+                      "operationMetadataId": "00fe68d2-3c09-44d7-850d-b3e3ad7dab70"
+                    },
+                    "type": "Compose",
+                    "inputs": "@body('HTTP-WebDev')?['choices']?[0]?['message']?['content']\r\n"
+                  },
+                  "ComposeCleanJson-WebDev": {
+                    "runAfter": {
+                      "ExtractContent-WebDev": [
+                        "Succeeded"
+                      ]
+                    },
+                    "metadata": {
+                      "operationMetadataId": "451f89d7-d7b3-4738-8539-ec361b07aa8c"
+                    },
+                    "type": "Compose",
+                    "inputs": "@json(replace(replace(outputs('ExtractContent-WebDev'), '```json', ''), '```', ''))\r\n"
+                  },
+                  "Parse_JSON-WebDev": {
+                    "runAfter": {
+                      "ComposeCleanJson-WebDev": [
+                        "Succeeded"
+                      ]
+                    },
+                    "metadata": {
+                      "operationMetadataId": "ae9d4c9a-4025-449f-988f-8579bde75665"
+                    },
+                    "type": "ParseJson",
+                    "inputs": {
+                      "content": "@outputs('ComposeCleanJson-WebDev')",
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "skills": {
+                            "type": "string"
+                          },
+                          "experience": {
+                            "type": "string"
+                          },
+                          "matchScore": {
+                            "type": "string"
+                          },
+                          "isSuitable": {
+                            "type": "string"
+                          },
+                          "matchReason": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "Update_item_6": {
+                    "runAfter": {
+                      "Parse_JSON-WebDev": [
+                        "Succeeded"
+                      ]
+                    },
+                    "metadata": {
+                      "operationMetadataId": "b918b429-b299-490f-9982-aa506f611ae9"
+                    },
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "dataset": "https://prodigygroupindia.sharepoint.com",
+                        "table": "fae424a7-c41c-495a-ab66-e1c5cbbd7728",
+                        "id": "@triggerBody()?['ID']",
+                        "item/field_8": "@body('Parse_JSON-WebDev')?['experience']",
+                        "item/ActualPosition": "@body('Parse_JSON_2')['suggestedPosition']",
+                        "item/IsSuitable": "@body('Parse_JSON-WebDev')?['isSuitable']",
+                        "item/ExtractedSkills": "@body('Parse_JSON-WebDev')?['skills']",
+                        "item/MatchReasonUnmatchedSkills_x0028": "@body('Parse_JSON-WebDev')?['matchReason']",
+                        "item/MatchScore_x0028__x0025__x0029_": "@body('Parse_JSON-WebDev')?['matchScore']"
+                      },
+                      "host": {
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                        "connectionName": "shared_sharepointonline",
+                        "operationId": "PatchItem"
+                      },
+                      "authentication": "@parameters('$authentication')"
+                    }
+                  }
+                },
+                "else": {
+                  "actions": {}
+                },
+                "expression": {
+                  "contains": [
+                    "@outputs('ComposeToLower')",
+                    "web"
+                  ]
+                },
+                "metadata": {
+                  "operationMetadataId": "8e9d8b76-db65-4aff-83d7-f35894546ada"
+                },
+                "type": "If"
+              }
+            }
+          },
+          "expression": {
+            "and": [
+              {
+                "contains": [
+                  "@outputs('ComposeToLower')",
+                  "wordpress"
+                ]
+              }
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "260e1910-6ced-4e72-858f-9c2982992bf8"
+          },
+          "type": "If"
+        },
+        "ComposeWebDevJD": {
+          "runAfter": {
+            "ComposeWordpressJD": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "d4eb81a7-3484-42ed-8455-3d8509c4e703"
+          },
+          "type": "Compose",
+          "inputs": "@first(outputs('Get_items')?['body/value'])?['WebDev_JD']\r\n"
+        },
+        "Condition_7": {
+          "actions": {
+            "ComposeAIPrompt-AdminLead": {
+              "metadata": {
+                "operationMetadataId": "9a4fb7b2-a062-4c4e-9cb3-71f4a30ff6c3"
+              },
+              "type": "Compose",
+              "inputs": [
+                {
+                  "role": "system",
+                  "content": "You are an AI assistant that compares resumes with job descriptions and strictly cjeck if the resume is suitable or not and outputs structured JSON."
+                },
+                {
+                  "role": "user",
+                  "content": "Given this resume:\n@{outputs('Get_item')?['body/ResumeText']}\n@{outputs('ComposeAdminLeadJD')}\nAnd this job description:\n\n\nExtract the following:\n1. Technical skills.\n2. Total experience.\n3. Match score out of 1 to 100%(Score being the highest if he's more suitable and lowest if not).\n4. Is the candidate suitable? (Yes/No)\n5. Brief explanation(short and precise).\n\nReturn exactly this JSON(skills and matchScore in string format):\n{\n  \"skills\": \"List of skills\",\n  \"experience\": \"Experience in text\",\n  \"matchScore\": 85%,\n  \"isSuitable\": \"Yes\",\n  \"matchReason\": \"Reason\"\n}"
+                }
+              ]
+            },
+            "HTTP-AdminLead": {
+              "runAfter": {
+                "ComposeAIPrompt-AdminLead": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "f5a88b60-9cbe-45fc-b76d-cf83d3a9e1ee"
+              },
+              "type": "Http",
+              "inputs": {
+                "uri": "https://resumejobmatcher.openai.azure.com/openai/deployments/jobmatchergpt-4o/chat/completions?api-version=2025-01-01-preview",
+                "method": "POST",
+                "headers": {
+                  "Content-Type": "application/json",
+                  "api-key": "SHxsDhdFD0tX6FdM1zg4uOAb2WggIlNUcszdkhrux7oJil3kkMnTJQQJ99BFACHYHv6XJ3w3AAABACOGrFDn"
+                },
+                "body": {
+                  "messages": "@outputs('ComposeAIPrompt-AdminLead')",
+                  "temperature": 0.7,
+                  "max_tokens": 500
+                }
+              }
+            },
+            "ExtractContent-AdminLead": {
+              "runAfter": {
+                "HTTP-AdminLead": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "00fe68d2-3c09-44d7-850d-b3e3ad7dab70"
+              },
+              "type": "Compose",
+              "inputs": "@body('HTTP-AdminLead')?['choices']?[0]?['message']?['content']\r\n"
+            },
+            "ComposeCleanJson-AdminLead": {
+              "runAfter": {
+                "ExtractContent-AdminLead": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "451f89d7-d7b3-4738-8539-ec361b07aa8c"
+              },
+              "type": "Compose",
+              "inputs": "@json(replace(replace(outputs('ExtractContent-AdminLead'), '```json', ''), '```', ''))\r\n"
+            },
+            "Parse_JSON-AdminLead": {
+              "runAfter": {
+                "ComposeCleanJson-AdminLead": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "ae9d4c9a-4025-449f-988f-8579bde75665"
+              },
+              "type": "ParseJson",
+              "inputs": {
+                "content": "@outputs('ComposeCleanJson-AdminLead')",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "skills": {
+                      "type": "string"
+                    },
+                    "experience": {
+                      "type": "string"
+                    },
+                    "matchScore": {
+                      "type": "string"
+                    },
+                    "isSuitable": {
+                      "type": "string"
+                    },
+                    "matchReason": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "Update_item_5_1": {
+              "runAfter": {
+                "Parse_JSON-AdminLead": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "6c83b63f-8091-4b59-b9df-b01908dedb66"
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "https://prodigygroupindia.sharepoint.com",
+                  "table": "fae424a7-c41c-495a-ab66-e1c5cbbd7728",
+                  "id": "@triggerBody()?['ID']",
+                  "item/field_8": "@body('Parse_JSON-AdminLead')?['experience']",
+                  "item/ActualPosition": "@body('Parse_JSON_2')['suggestedPosition']",
+                  "item/IsSuitable": "@body('Parse_JSON-AdminLead')?['isSuitable']",
+                  "item/ExtractedSkills": "@body('Parse_JSON-AdminLead')?['skills']",
+                  "item/MatchReasonUnmatchedSkills_x0028": "@body('Parse_JSON-AdminLead')?['matchReason']",
+                  "item/MatchScore_x0028__x0025__x0029_": "@body('Parse_JSON-AdminLead')?['matchScore']"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "connectionName": "shared_sharepointonline",
+                  "operationId": "PatchItem"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            }
+          },
+          "runAfter": {
+            "Parse_JSON_2": [
+              "Succeeded"
+            ]
+          },
+          "else": {
+            "actions": {
+              "Condition_8": {
+                "actions": {
+                  "ComposeAIPrompt-DotNet": {
+                    "metadata": {
+                      "operationMetadataId": "9a4fb7b2-a062-4c4e-9cb3-71f4a30ff6c3"
+                    },
+                    "type": "Compose",
+                    "inputs": [
+                      {
+                        "role": "system",
+                        "content": "You are an AI assistant that compares resumes with job descriptions and strictly cjeck if the resume is suitable or not and outputs structured JSON."
+                      },
+                      {
+                        "role": "user",
+                        "content": "Given this resume:\n@{outputs('Get_item')?['body/ResumeText']}\n@{outputs('ComposeDotNetJD')}\nAnd this job description:\n\n\nExtract the following:\n1. Technical skills.\n2. Total experience.\n3. Match score out of 1 to 100%(Score being the highest if he's more suitable and lowest if not).\n4. Is the candidate suitable? (Yes/No)\n5. Brief explanation(short and precise).\n\nReturn exactly this JSON(skills and matchScore in string format):\n{\n  \"skills\": \"List of skills\",\n  \"experience\": \"Experience in text\",\n  \"matchScore\": 85%,\n  \"isSuitable\": \"Yes\",\n  \"matchReason\": \"Reason\"\n}"
+                      }
+                    ]
+                  },
+                  "HTTP-DotNet": {
+                    "runAfter": {
+                      "ComposeAIPrompt-DotNet": [
+                        "Succeeded"
+                      ]
+                    },
+                    "metadata": {
+                      "operationMetadataId": "f5a88b60-9cbe-45fc-b76d-cf83d3a9e1ee"
+                    },
+                    "type": "Http",
+                    "inputs": {
+                      "uri": "https://resumejobmatcher.openai.azure.com/openai/deployments/jobmatchergpt-4o/chat/completions?api-version=2025-01-01-preview",
+                      "method": "POST",
+                      "headers": {
+                        "Content-Type": "application/json",
+                        "api-key": "SHxsDhdFD0tX6FdM1zg4uOAb2WggIlNUcszdkhrux7oJil3kkMnTJQQJ99BFACHYHv6XJ3w3AAABACOGrFDn"
+                      },
+                      "body": {
+                        "messages": "@outputs('ComposeAIPrompt-DotNet')",
+                        "temperature": 0.7,
+                        "max_tokens": 500
+                      }
+                    }
+                  },
+                  "ExtractContent-DotNet": {
+                    "runAfter": {
+                      "HTTP-DotNet": [
+                        "Succeeded"
+                      ]
+                    },
+                    "metadata": {
+                      "operationMetadataId": "00fe68d2-3c09-44d7-850d-b3e3ad7dab70"
+                    },
+                    "type": "Compose",
+                    "inputs": "@body('HTTP-DotNet')?['choices']?[0]?['message']?['content']\r\n"
+                  },
+                  "ComposeCleanJson-DotNet": {
+                    "runAfter": {
+                      "ExtractContent-DotNet": [
+                        "Succeeded"
+                      ]
+                    },
+                    "metadata": {
+                      "operationMetadataId": "451f89d7-d7b3-4738-8539-ec361b07aa8c"
+                    },
+                    "type": "Compose",
+                    "inputs": "@json(replace(replace(outputs('ExtractContent-DotNet'), '```json', ''), '```', ''))\r\n"
+                  },
+                  "Parse_JSON-DotNet": {
+                    "runAfter": {
+                      "ComposeCleanJson-DotNet": [
+                        "Succeeded"
+                      ]
+                    },
+                    "metadata": {
+                      "operationMetadataId": "ae9d4c9a-4025-449f-988f-8579bde75665"
+                    },
+                    "type": "ParseJson",
+                    "inputs": {
+                      "content": "@outputs('ComposeCleanJson-DotNet')",
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "skills": {
+                            "type": "string"
+                          },
+                          "experience": {
+                            "type": "string"
+                          },
+                          "matchScore": {
+                            "type": "string"
+                          },
+                          "isSuitable": {
+                            "type": "string"
+                          },
+                          "matchReason": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "Update_item_5_1_1": {
+                    "runAfter": {
+                      "Parse_JSON-DotNet": [
+                        "Succeeded"
+                      ]
+                    },
+                    "metadata": {
+                      "operationMetadataId": "6c83b63f-8091-4b59-b9df-b01908dedb66"
+                    },
+                    "type": "OpenApiConnection",
+                    "inputs": {
+                      "parameters": {
+                        "dataset": "https://prodigygroupindia.sharepoint.com",
+                        "table": "fae424a7-c41c-495a-ab66-e1c5cbbd7728",
+                        "id": "@triggerBody()?['ID']",
+                        "item/field_8": "@body('Parse_JSON-DotNet')?['experience']",
+                        "item/ActualPosition": "@body('Parse_JSON_2')['suggestedPosition']",
+                        "item/IsSuitable": "@body('Parse_JSON-DotNet')?['isSuitable']",
+                        "item/ExtractedSkills": "@body('Parse_JSON-DotNet')?['skills']",
+                        "item/MatchReasonUnmatchedSkills_x0028": "@body('Parse_JSON-DotNet')?['matchReason']",
+                        "item/MatchScore_x0028__x0025__x0029_": "@body('Parse_JSON-DotNet')?['matchScore']"
+                      },
+                      "host": {
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                        "connectionName": "shared_sharepointonline",
+                        "operationId": "PatchItem"
+                      },
+                      "authentication": "@parameters('$authentication')"
+                    }
+                  }
+                },
+                "else": {
+                  "actions": {}
+                },
+                "expression": {
+                  "and": [
+                    {
+                      "contains": [
+                        "@outputs('ComposeToLower')",
+                        "net"
+                      ]
+                    }
+                  ]
+                },
+                "metadata": {
+                  "operationMetadataId": "3c7a8441-0ae4-4679-9888-369729557a48"
+                },
+                "type": "If"
+              }
+            }
+          },
+          "expression": {
+            "or": [
+              {
+                "contains": [
+                  "@outputs('ComposeToLower')",
+                  "lead"
+                ]
+              },
+              {
+                "contains": [
+                  "@outputs('ComposeToLower')",
+                  "it "
+                ]
+              },
+              {
+                "contains": [
+                  "@outputs('ComposeToLower')",
+                  "admin"
+                ]
+              }
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "a6eedba0-ef2d-4a7c-86ee-d4a8e9e1cef6"
+          },
+          "type": "If"
+        },
+        "ComposeAdminLeadJD": {
+          "runAfter": {
+            "ComposeWebDevJD": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "37eacd5f-c26b-4ecb-a747-f7275f159069"
+          },
+          "type": "Compose",
+          "inputs": "@first(outputs('Get_items')?['body/value'])?['AdminLead_JD']"
+        },
+        "ComposeDotNetJD": {
+          "runAfter": {
+            "ComposeAdminLeadJD": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "311f89f4-c65b-4288-b0a1-c7da2fb518a1"
+          },
+          "type": "Compose",
+          "inputs": "@first(outputs('Get_items')?['body/value'])?['DotNet_JD']"
+        },
+        "ComposeHubspotJD": {
+          "runAfter": {
+            "ComposeDotNetJD": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "96ec1572-2466-4231-933b-6568e4af5f25"
+          },
+          "type": "Compose",
+          "inputs": "@first(outputs('Get_items')?['body/value'])?['Hubspot_JD']"
+        },
+        "Condition_9": {
+          "actions": {
+            "ComposeAIPrompt-Hubspot": {
+              "metadata": {
+                "operationMetadataId": "9a4fb7b2-a062-4c4e-9cb3-71f4a30ff6c3"
+              },
+              "type": "Compose",
+              "inputs": [
+                {
+                  "role": "system",
+                  "content": "You are an AI assistant that compares resumes with job descriptions and strictly cjeck if the resume is suitable or not and outputs structured JSON."
+                },
+                {
+                  "role": "user",
+                  "content": "Given this resume:\n@{outputs('Get_item')?['body/ResumeText']}\n@{outputs('ComposeHubspotJD')}\nAnd this job description:\n\n\nExtract the following:\n1. Technical skills.\n2. Total experience.\n3. Match score out of 1 to 100%(Score being the highest if he's more suitable and lowest if not).\n4. Is the candidate suitable? (Yes/No)\n5. Brief explanation(short and precise).\n\nReturn exactly this JSON(skills and matchScore in string format):\n{\n  \"skills\": \"List of skills\",\n  \"experience\": \"Experience in text\",\n  \"matchScore\": 85%,\n  \"isSuitable\": \"Yes\",\n  \"matchReason\": \"Reason\"\n}"
+                }
+              ]
+            },
+            "HTTP-Hubspot": {
+              "runAfter": {
+                "ComposeAIPrompt-Hubspot": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "f5a88b60-9cbe-45fc-b76d-cf83d3a9e1ee"
+              },
+              "type": "Http",
+              "inputs": {
+                "uri": "https://resumejobmatcher.openai.azure.com/openai/deployments/jobmatchergpt-4o/chat/completions?api-version=2025-01-01-preview",
+                "method": "POST",
+                "headers": {
+                  "Content-Type": "application/json",
+                  "api-key": "SHxsDhdFD0tX6FdM1zg4uOAb2WggIlNUcszdkhrux7oJil3kkMnTJQQJ99BFACHYHv6XJ3w3AAABACOGrFDn"
+                },
+                "body": {
+                  "messages": "@outputs('ComposeAIPrompt-Hubspot')",
+                  "temperature": 0.7,
+                  "max_tokens": 500
+                }
+              }
+            },
+            "ExtractContent-Hubspot": {
+              "runAfter": {
+                "HTTP-Hubspot": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "00fe68d2-3c09-44d7-850d-b3e3ad7dab70"
+              },
+              "type": "Compose",
+              "inputs": "@body('HTTP-Hubspot')?['choices']?[0]?['message']?['content']\r\n"
+            },
+            "ComposeCleanJson-Hubspot": {
+              "runAfter": {
+                "ExtractContent-Hubspot": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "451f89d7-d7b3-4738-8539-ec361b07aa8c"
+              },
+              "type": "Compose",
+              "inputs": "@json(replace(replace(outputs('ExtractContent-Hubspot'), '```json', ''), '```', ''))\r\n"
+            },
+            "Parse_JSON-Hubspot": {
+              "runAfter": {
+                "ComposeCleanJson-Hubspot": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "ae9d4c9a-4025-449f-988f-8579bde75665"
+              },
+              "type": "ParseJson",
+              "inputs": {
+                "content": "@outputs('ComposeCleanJson-Hubspot')",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "skills": {
+                      "type": "string"
+                    },
+                    "experience": {
+                      "type": "string"
+                    },
+                    "matchScore": {
+                      "type": "string"
+                    },
+                    "isSuitable": {
+                      "type": "string"
+                    },
+                    "matchReason": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "Update_item_5_1_2": {
+              "runAfter": {
+                "Parse_JSON-Hubspot": [
+                  "Succeeded"
+                ]
+              },
+              "metadata": {
+                "operationMetadataId": "6c83b63f-8091-4b59-b9df-b01908dedb66"
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "parameters": {
+                  "dataset": "https://prodigygroupindia.sharepoint.com",
+                  "table": "fae424a7-c41c-495a-ab66-e1c5cbbd7728",
+                  "id": "@triggerBody()?['ID']",
+                  "item/field_8": "@body('Parse_JSON-Hubspot')?['experience']",
+                  "item/ActualPosition": "@body('Parse_JSON_2')['suggestedPosition']",
+                  "item/IsSuitable": "@body('Parse_JSON-Hubspot')?['isSuitable']",
+                  "item/ExtractedSkills": "@body('Parse_JSON-Hubspot')?['skills']",
+                  "item/MatchReasonUnmatchedSkills_x0028": "@body('Parse_JSON-Hubspot')?['matchReason']",
+                  "item/MatchScore_x0028__x0025__x0029_": "@body('Parse_JSON-Hubspot')?['matchScore']"
+                },
+                "host": {
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                  "connectionName": "shared_sharepointonline",
+                  "operationId": "PatchItem"
+                },
+                "authentication": "@parameters('$authentication')"
+              }
+            }
+          },
+          "runAfter": {
+            "Parse_JSON_2": [
+              "Succeeded"
+            ]
+          },
+          "else": {
+            "actions": {}
+          },
+          "expression": {
+            "and": [
+              {
+                "contains": [
+                  "@outputs('ComposeToLower')",
+                  "hubspot"
+                ]
+              }
+            ]
+          },
+          "type": "If"
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}
